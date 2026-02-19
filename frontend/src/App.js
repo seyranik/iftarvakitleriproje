@@ -762,7 +762,7 @@ function App() {
                 {ramadanInfo.isRamadan ? "Ramazan İmsakiyesi" : "Aylık Takvim"}
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[80vh] p-0" data-testid="schedule-modal">
+            <DialogContent className="max-w-3xl max-h-[80vh] p-0 overflow-hidden" data-testid="schedule-modal">
               <DialogHeader className="p-6 pb-0">
                 <DialogTitle className="text-2xl font-light flex items-center gap-2">
                   <Calendar className="w-6 h-6 text-primary" />
@@ -775,21 +775,21 @@ function App() {
                   }
                 </DialogDescription>
               </DialogHeader>
-              <ScrollArea className="h-[60vh] px-6 pb-6">
-                <div className="overflow-x-auto">
+              <div className="h-[60vh] overflow-y-auto overflow-x-auto px-4 md:px-6 pb-6">
+                <div className="min-w-[600px]">
                   <table className="w-full text-sm">
                     <thead className="sticky top-0 bg-background z-10">
                       <tr className="border-b">
                         {ramadanInfo.isRamadan ? (
-                          <th className="text-center py-3 px-2 font-medium text-primary">Gün</th>
+                          <th className="text-center py-3 px-2 font-medium text-primary whitespace-nowrap">Gün</th>
                         ) : null}
-                        <th className="text-left py-3 px-2 font-medium text-muted-foreground">Tarih</th>
-                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">İmsak</th>
-                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">Güneş</th>
-                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">Öğle</th>
-                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">İkindi</th>
-                        <th className="text-center py-3 px-2 font-medium text-primary font-bold">Akşam</th>
-                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">Yatsı</th>
+                        <th className="text-left py-3 px-2 font-medium text-muted-foreground whitespace-nowrap">Tarih</th>
+                        <th className="text-center py-3 px-2 font-medium text-muted-foreground whitespace-nowrap">İmsak</th>
+                        <th className="text-center py-3 px-2 font-medium text-muted-foreground whitespace-nowrap">Güneş</th>
+                        <th className="text-center py-3 px-2 font-medium text-muted-foreground whitespace-nowrap">Öğle</th>
+                        <th className="text-center py-3 px-2 font-medium text-muted-foreground whitespace-nowrap">İkindi</th>
+                        <th className="text-center py-3 px-2 font-medium text-primary font-bold whitespace-nowrap">Akşam</th>
+                        <th className="text-center py-3 px-2 font-medium text-muted-foreground whitespace-nowrap">Yatsı</th>
                       </tr>
                     </thead>
                     <tbody>
