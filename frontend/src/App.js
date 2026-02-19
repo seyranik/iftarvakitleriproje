@@ -36,6 +36,16 @@ const TURKISH_CITIES = [
   { name: "Van", displayName: "VAN", sehirId: "577", ilceId: "9929" },
 ];
 
+// Ramadan 2026 dates for Turkey (official)
+// Starts: February 19, 2026 (1 Ramazan 1447)
+// Ends: March 19, 2026 (29 Ramazan 1447) - Last day of Ramadan
+// Eid: March 20, 2026
+const RAMADAN_2026 = {
+  start: new Date(2026, 1, 19), // Feb 19, 2026
+  end: new Date(2026, 2, 19),   // Mar 19, 2026 (last day of Ramadan)
+  totalDays: 29
+};
+
 // Prayer icons mapping
 const PRAYER_ICONS = {
   Imsak: Sunrise,
@@ -86,52 +96,54 @@ function formatCountdown(ms) {
   };
 }
 
-// Extract Ramadan info from Hijri date in API response
-function getRamadanInfoFromData(monthlyData) {
-  if (!monthlyData || monthlyData.length === 0) {
-    return { isRamadan: false, ramadanDays: [] };
-  }
+// Check if date is within Ramadan 2026
+function isDateInRamadan(date) {
+  const checkDate = new Date(date);
+  checkDate.setHours(0, 0, 0, 0);
   
-  // Filter for Ramadan days (Ramazan in Turkish Hijri calendar)
-  const ramadanDays = monthlyData.filter(day => {
-    const hijriDate = day.HicriTarihUzun || "";
-    return hijriDate.includes("Ramazan");
-  });
+  const start = new Date(RAMADAN_2026.start);
+  start.setHours(0, 0, 0, 0);
   
-  if (ramadanDays.length === 0) {
-    return { isRamadan: false, ramadanDays: [] };
-  }
+  const end = new Date(RAMADAN_2026.end);
+  end.setHours(23, 59, 59, 999);
   
-  // Find today's date in the data
+  return checkDate >= start && checkDate <= end;
+}
+
+// Get Ramadan day number for a given date
+function getRamadanDayNumber(date) {
+  if (!isDateInRamadan(date)) return null;
+  
+  const checkDate = new Date(date);
+  checkDate.setHours(0, 0, 0, 0);
+  
+  const start = new Date(RAMADAN_2026.start);
+  start.setHours(0, 0, 0, 0);
+  
+  const diffTime = checkDate - start;
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  return diffDays + 1; // Day 1 = Feb 19
+}
+
+// Get Ramadan info for today
+function getRamadanInfo() {
   const today = new Date();
-  const todayStr = `${today.getDate().toString().padStart(2, "0")}.${(today.getMonth() + 1).toString().padStart(2, "0")}.${today.getFullYear()}`;
   
-  const todayData = monthlyData.find(day => day.MiladiTarihKisa === todayStr);
-  
-  if (todayData) {
-    const hijriDate = todayData.HicriTarihUzun || "";
-    const isRamadan = hijriDate.includes("Ramazan");
-    
-    if (isRamadan) {
-      // Extract day number from Hijri date (e.g., "5 Ramazan 1447" -> 5)
-      const match = hijriDate.match(/^(\d+)\s+Ramazan/);
-      const dayOfRamadan = match ? parseInt(match[1]) : 1;
-      
-      // Calculate total Ramadan days from data
-      const totalDays = ramadanDays.length;
-      const progress = (dayOfRamadan / Math.max(totalDays, 29)) * 100;
-      
-      return { 
-        isRamadan: true, 
-        dayOfRamadan, 
-        totalDays: Math.max(totalDays, 29),
-        progress,
-        ramadanDays 
-      };
-    }
+  if (!isDateInRamadan(today)) {
+    return { isRamadan: false };
   }
   
-  return { isRamadan: false, ramadanDays };
+  const dayOfRamadan = getRamadanDayNumber(today);
+  const totalDays = RAMADAN_2026.totalDays;
+  const progress = (dayOfRamadan / totalDays) * 100;
+  
+  return {
+    isRamadan: true,
+    dayOfRamadan,
+    totalDays,
+    progress
+  };
 }
 
 // ============================================
@@ -143,11 +155,13 @@ function App() {
   const [city, setCity] = useState(null);
   const [prayerTimes, setPrayerTimes] = useState(null);
   const [monthlyData, setMonthlyData] = useState([]);
+  const [fullRamadanData, setFullRamadanData] = useState([]); // Full 29 days of Ramadan
   const [ramadanInfo, setRamadanInfo] = useState({ isRamadan: false });
   const [countdown, setCountdown] = useState({ hours: "00", minutes: "00", seconds: "00", total: 0 });
   const [loading, setLoading] = useState(true);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [iftarPassed, setIftarPassed] = useState(false);
+  const [adImageError, setAdImageError] = useState(false);
   
   // Refs for interval management (prevents memory leaks)
   const countdownIntervalRef = useRef(null);
@@ -158,11 +172,9 @@ function App() {
   // ============================================
   useEffect(() => {
     const savedTheme = localStorage.getItem("prayer-theme");
-    // Only use saved theme if it exists, otherwise default to dark
     if (savedTheme) {
       setTheme(savedTheme);
     } else {
-      // Default to dark mode (ignore system preference)
       setTheme("dark");
       localStorage.setItem("prayer-theme", "dark");
     }
@@ -198,7 +210,6 @@ function App() {
     if (savedCity) {
       try {
         const parsed = JSON.parse(savedCity);
-        // Validate the saved city has required fields
         if (parsed.ilceId) {
           setCity(parsed);
           return;
@@ -227,7 +238,6 @@ function App() {
       const cacheKey = `diyanet-times-${selectedCity.ilceId}-${today.toDateString()}`;
       const cached = localStorage.getItem(cacheKey);
       
-      // Try cache first
       if (cached) {
         try {
           const data = JSON.parse(cached);
@@ -261,7 +271,7 @@ function App() {
       console.error("Failed to fetch prayer times:", error);
       toast.error("Namaz vakitleri alınamadı. Lütfen tekrar deneyin.");
       
-      // Try to use cached data as fallback
+      // Try fallback
       const fallbackKey = `diyanet-times-${selectedCity.ilceId}`;
       const fallback = localStorage.getItem(fallbackKey);
       if (fallback) {
@@ -298,7 +308,6 @@ function App() {
         raw: todayData
       });
     } else if (data.length > 0) {
-      // Fallback to first available day
       const firstDay = data[0];
       setPrayerTimes({
         Imsak: firstDay.Imsak,
@@ -311,35 +320,104 @@ function App() {
       });
     }
     
-    // Calculate Ramadan info from Hijri dates in data
-    const ramadan = getRamadanInfoFromData(data);
+    // Calculate Ramadan info
+    const ramadan = getRamadanInfo();
     setRamadanInfo(ramadan);
+    
+    // Extract Ramadan days from current data
+    if (ramadan.isRamadan) {
+      const ramadanDays = data.filter(day => {
+        // Parse date from DD.MM.YYYY format
+        const parts = day.MiladiTarihKisa.split(".");
+        if (parts.length === 3) {
+          const date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+          return isDateInRamadan(date);
+        }
+        return false;
+      });
+      setFullRamadanData(ramadanDays);
+    }
   }, []);
 
   // Fetch times when city changes
   useEffect(() => {
     if (city) {
-      // Clear any existing intervals when city changes
       if (countdownIntervalRef.current) {
         clearInterval(countdownIntervalRef.current);
         countdownIntervalRef.current = null;
       }
       
-      // Reset states
       setPrayerTimes(null);
       setCountdown({ hours: "00", minutes: "00", seconds: "00", total: 0 });
       setIftarPassed(false);
       
-      // Fetch new data
       fetchPrayerTimes(city);
     }
   }, [city, fetchPrayerTimes]);
 
   // ============================================
-  // COUNTDOWN TIMER - Single interval management
+  // FETCH FULL RAMADAN DATA (Feb + March)
+  // ============================================
+  const fetchFullRamadanSchedule = useCallback(async () => {
+    if (!city || !city.ilceId) return [];
+    
+    const cacheKey = `ramadan-full-${city.ilceId}-2026`;
+    const cached = localStorage.getItem(cacheKey);
+    
+    if (cached) {
+      try {
+        const data = JSON.parse(cached);
+        if (data.length >= 29) {
+          setFullRamadanData(data);
+          return data;
+        }
+      } catch (e) {
+        localStorage.removeItem(cacheKey);
+      }
+    }
+    
+    try {
+      // Fetch current month data
+      const response = await fetch(`${API_BASE}/vakitler/${city.ilceId}`);
+      if (!response.ok) throw new Error("API error");
+      
+      const data = await response.json();
+      
+      // Filter for Ramadan dates (Feb 19 - Mar 19, 2026)
+      const ramadanDays = data.filter(day => {
+        const parts = day.MiladiTarihKisa.split(".");
+        if (parts.length === 3) {
+          const date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+          return isDateInRamadan(date);
+        }
+        return false;
+      });
+      
+      // Sort by date
+      ramadanDays.sort((a, b) => {
+        const partsA = a.MiladiTarihKisa.split(".");
+        const partsB = b.MiladiTarihKisa.split(".");
+        const dateA = new Date(parseInt(partsA[2]), parseInt(partsA[1]) - 1, parseInt(partsA[0]));
+        const dateB = new Date(parseInt(partsB[2]), parseInt(partsB[1]) - 1, parseInt(partsB[0]));
+        return dateA - dateB;
+      });
+      
+      if (ramadanDays.length > 0) {
+        localStorage.setItem(cacheKey, JSON.stringify(ramadanDays));
+        setFullRamadanData(ramadanDays);
+      }
+      
+      return ramadanDays;
+    } catch (error) {
+      console.error("Failed to fetch Ramadan schedule:", error);
+      return fullRamadanData;
+    }
+  }, [city, fullRamadanData]);
+
+  // ============================================
+  // COUNTDOWN TIMER
   // ============================================
   useEffect(() => {
-    // Clear any existing countdown interval
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
       countdownIntervalRef.current = null;
@@ -357,14 +435,11 @@ function App() {
       let diff = aksamTime - now;
       
       if (diff <= 0 && now < yatsiTime) {
-        // Iftar time has passed but before Yatsı
         setIftarPassed(true);
         setCountdown({ hours: "00", minutes: "00", seconds: "00", total: 0 });
       } else if (now >= yatsiTime) {
-        // After Yatsı - countdown to next day's Iftar
         setIftarPassed(false);
         
-        // Find tomorrow's Aksam time from monthly data
         const tomorrow = new Date(now);
         tomorrow.setDate(tomorrow.getDate() + 1);
         const tomorrowStr = `${tomorrow.getDate().toString().padStart(2, "0")}.${(tomorrow.getMonth() + 1).toString().padStart(2, "0")}.${tomorrow.getFullYear()}`;
@@ -380,7 +455,6 @@ function App() {
             diff = tomorrowAksam - now;
           }
         } else {
-          // Fallback: use same time for tomorrow
           const nextAksam = new Date(aksamTime);
           nextAksam.setDate(nextAksam.getDate() + 1);
           diff = nextAksam - now;
@@ -388,19 +462,14 @@ function App() {
         
         setCountdown(formatCountdown(diff));
       } else {
-        // Before Iftar
         setIftarPassed(false);
         setCountdown(formatCountdown(diff));
       }
     };
     
-    // Initial update
     updateCountdown();
-    
-    // Set up interval
     countdownIntervalRef.current = setInterval(updateCountdown, 1000);
     
-    // Cleanup
     return () => {
       if (countdownIntervalRef.current) {
         clearInterval(countdownIntervalRef.current);
@@ -426,6 +495,8 @@ function App() {
         if (city) {
           fetchPrayerTimes(city);
         }
+        // Update Ramadan info on date change
+        setRamadanInfo(getRamadanInfo());
       }
     };
     
@@ -444,11 +515,9 @@ function App() {
   const handleCityChange = useCallback((cityName) => {
     const newCity = TURKISH_CITIES.find(c => c.name === cityName);
     if (newCity) {
-      // Clear stale data
       setPrayerTimes(null);
       setMonthlyData([]);
-      
-      // Update city
+      setFullRamadanData([]);
       setCity(newCity);
       localStorage.setItem("prayer-city", JSON.stringify(newCity));
     }
@@ -462,25 +531,10 @@ function App() {
     });
   }, []);
 
-  // ============================================
-  // GET RAMADAN SCHEDULE FOR MODAL
-  // ============================================
-  const getRamadanSchedule = useCallback(() => {
-    if (!monthlyData || monthlyData.length === 0) return [];
-    
-    // Filter only Ramadan days from data
-    const ramadanDays = monthlyData.filter(day => {
-      const hijriDate = day.HicriTarihUzun || "";
-      return hijriDate.includes("Ramazan");
-    });
-    
-    // If no Ramadan days in current month, return all monthly data
-    if (ramadanDays.length === 0) {
-      return monthlyData;
-    }
-    
-    return ramadanDays;
-  }, [monthlyData]);
+  const handleScheduleOpen = useCallback(() => {
+    setScheduleOpen(true);
+    fetchFullRamadanSchedule();
+  }, [fetchFullRamadanSchedule]);
 
   // Prayer order for display
   const prayerOrder = ["Imsak", "Gunes", "Ogle", "Ikindi", "Aksam", "Yatsi"];
@@ -504,7 +558,29 @@ function App() {
         </div>
       )}
       
-      <div className={`container mx-auto px-4 md:px-8 py-8 max-w-5xl ${ramadanInfo.isRamadan ? "pt-20" : ""}`}>
+      {/* Advertisement Area - Below Ramadan bar */}
+      <div 
+        className={`w-full flex justify-center bg-muted/30 ${ramadanInfo.isRamadan ? "mt-12" : ""}`}
+        data-testid="ad-container"
+      >
+        <div className="w-full max-w-5xl h-[250px] flex items-center justify-center overflow-hidden">
+          {!adImageError ? (
+            <img 
+              src="./reklam.png" 
+              alt="Reklam"
+              className="max-w-full max-h-full object-contain"
+              onError={() => setAdImageError(true)}
+              data-testid="ad-image"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground/30 text-sm">
+              {/* Empty placeholder when no ad image */}
+            </div>
+          )}
+        </div>
+      </div>
+      
+      <div className="container mx-auto px-4 md:px-8 py-8 max-w-5xl">
         {/* Header */}
         <header className="flex items-center justify-between mb-12 animate-fade-in-up">
           {/* City Selector */}
@@ -645,95 +721,102 @@ function App() {
           </section>
         )}
         
-        {/* Ramadan Schedule Button - Only show if we have Ramadan data or any monthly data */}
-        {monthlyData.length > 0 && (
-          <section className="flex justify-center mb-12 animate-fade-in-up animation-delay-300">
-            <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="gap-2 rounded-full px-6 py-5 text-base hover:bg-primary hover:text-primary-foreground transition-all btn-press"
-                  data-testid="schedule-button"
-                >
-                  <Calendar className="w-5 h-5" />
-                  {ramadanInfo.isRamadan ? "Ramazan İmsakiyesi" : "Aylık Takvim"}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-3xl max-h-[80vh] p-0" data-testid="schedule-modal">
-                <DialogHeader className="p-6 pb-0">
-                  <DialogTitle className="text-2xl font-light flex items-center gap-2">
-                    <Calendar className="w-6 h-6 text-primary" />
-                    {city?.name} — {ramadanInfo.isRamadan ? "Ramazan İmsakiyesi" : "Aylık Namaz Vakitleri"}
-                  </DialogTitle>
-                  <DialogDescription className="sr-only">
-                    {city?.name} için {ramadanInfo.isRamadan ? "Ramazan imsakiyesi" : "aylık namaz vakitleri"} tablosu
-                  </DialogDescription>
-                </DialogHeader>
-                <ScrollArea className="h-[60vh] px-6 pb-6">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="sticky top-0 bg-background z-10">
-                        <tr className="border-b">
-                          {ramadanInfo.isRamadan ? (
-                            <th className="text-center py-3 px-2 font-medium text-primary">Gün</th>
-                          ) : null}
-                          <th className="text-left py-3 px-2 font-medium text-muted-foreground">Tarih</th>
-                          <th className="text-center py-3 px-2 font-medium text-muted-foreground">İmsak</th>
-                          <th className="text-center py-3 px-2 font-medium text-muted-foreground">Güneş</th>
-                          <th className="text-center py-3 px-2 font-medium text-muted-foreground">Öğle</th>
-                          <th className="text-center py-3 px-2 font-medium text-muted-foreground">İkindi</th>
-                          <th className="text-center py-3 px-2 font-medium text-primary font-bold">Akşam</th>
-                          <th className="text-center py-3 px-2 font-medium text-muted-foreground">Yatsı</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {getRamadanSchedule().map((day, index) => {
-                          const today = new Date();
-                          const todayStr = `${today.getDate().toString().padStart(2, "0")}.${(today.getMonth() + 1).toString().padStart(2, "0")}.${today.getFullYear()}`;
-                          const isToday = day.MiladiTarihKisa === todayStr;
-                          
-                          // Extract Ramadan day number from Hijri date
-                          let ramadanDay = index + 1;
-                          if (day.HicriTarihUzun) {
-                            const match = day.HicriTarihUzun.match(/^(\d+)\s+Ramazan/);
-                            if (match) ramadanDay = parseInt(match[1]);
+        {/* Ramadan Schedule Button */}
+        <section className="flex justify-center mb-12 animate-fade-in-up animation-delay-300">
+          <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                className="gap-2 rounded-full px-6 py-5 text-base hover:bg-primary hover:text-primary-foreground transition-all btn-press"
+                onClick={handleScheduleOpen}
+                data-testid="schedule-button"
+              >
+                <Calendar className="w-5 h-5" />
+                {ramadanInfo.isRamadan ? "Ramazan İmsakiyesi" : "Aylık Takvim"}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[80vh] p-0" data-testid="schedule-modal">
+              <DialogHeader className="p-6 pb-0">
+                <DialogTitle className="text-2xl font-light flex items-center gap-2">
+                  <Calendar className="w-6 h-6 text-primary" />
+                  {city?.name} — {ramadanInfo.isRamadan ? "Ramazan İmsakiyesi 2026" : "Aylık Namaz Vakitleri"}
+                </DialogTitle>
+                <DialogDescription className="text-sm text-muted-foreground mt-1">
+                  {ramadanInfo.isRamadan 
+                    ? "19 Şubat - 19 Mart 2026 (29 gün)" 
+                    : `${city?.name} için aylık namaz vakitleri`
+                  }
+                </DialogDescription>
+              </DialogHeader>
+              <ScrollArea className="h-[60vh] px-6 pb-6">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-background z-10">
+                      <tr className="border-b">
+                        {ramadanInfo.isRamadan ? (
+                          <th className="text-center py-3 px-2 font-medium text-primary">Gün</th>
+                        ) : null}
+                        <th className="text-left py-3 px-2 font-medium text-muted-foreground">Tarih</th>
+                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">İmsak</th>
+                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">Güneş</th>
+                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">Öğle</th>
+                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">İkindi</th>
+                        <th className="text-center py-3 px-2 font-medium text-primary font-bold">Akşam</th>
+                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">Yatsı</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(ramadanInfo.isRamadan ? fullRamadanData : monthlyData).map((day, index) => {
+                        const today = new Date();
+                        const todayStr = `${today.getDate().toString().padStart(2, "0")}.${(today.getMonth() + 1).toString().padStart(2, "0")}.${today.getFullYear()}`;
+                        const isToday = day.MiladiTarihKisa === todayStr;
+                        
+                        // Calculate Ramadan day number from date
+                        let ramadanDay = index + 1;
+                        if (ramadanInfo.isRamadan) {
+                          const parts = day.MiladiTarihKisa.split(".");
+                          if (parts.length === 3) {
+                            const date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+                            const dayNum = getRamadanDayNumber(date);
+                            if (dayNum) ramadanDay = dayNum;
                           }
-                          
-                          return (
-                            <tr 
-                              key={index} 
-                              className={`border-b transition-colors ${isToday ? "bg-primary/10" : "hover:bg-muted/50"}`}
-                              data-testid={`schedule-row-${index}`}
-                            >
-                              {ramadanInfo.isRamadan ? (
-                                <td className="text-center py-3 px-2 font-bold text-primary">
-                                  {ramadanDay}
-                                </td>
-                              ) : null}
-                              <td className="py-3 px-2 font-medium whitespace-nowrap">
-                                {day.MiladiTarihKisa}
+                        }
+                        
+                        return (
+                          <tr 
+                            key={index} 
+                            className={`border-b transition-colors ${isToday ? "bg-primary/10" : "hover:bg-muted/50"}`}
+                            data-testid={`schedule-row-${index}`}
+                          >
+                            {ramadanInfo.isRamadan ? (
+                              <td className="text-center py-3 px-2 font-bold text-primary">
+                                {ramadanDay}
                               </td>
-                              <td className="text-center py-3 px-2 tabular-nums">{day.Imsak}</td>
-                              <td className="text-center py-3 px-2 tabular-nums">{day.Gunes}</td>
-                              <td className="text-center py-3 px-2 tabular-nums">{day.Ogle}</td>
-                              <td className="text-center py-3 px-2 tabular-nums">{day.Ikindi}</td>
-                              <td className="text-center py-3 px-2 tabular-nums font-medium text-primary">{day.Aksam}</td>
-                              <td className="text-center py-3 px-2 tabular-nums">{day.Yatsi}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </ScrollArea>
-              </DialogContent>
-            </Dialog>
-          </section>
-        )}
+                            ) : null}
+                            <td className="py-3 px-2 font-medium whitespace-nowrap">
+                              {day.MiladiTarihKisa}
+                            </td>
+                            <td className="text-center py-3 px-2 tabular-nums">{day.Imsak}</td>
+                            <td className="text-center py-3 px-2 tabular-nums">{day.Gunes}</td>
+                            <td className="text-center py-3 px-2 tabular-nums">{day.Ogle}</td>
+                            <td className="text-center py-3 px-2 tabular-nums">{day.Ikindi}</td>
+                            <td className="text-center py-3 px-2 tabular-nums font-medium text-primary">{day.Aksam}</td>
+                            <td className="text-center py-3 px-2 tabular-nums">{day.Yatsi}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </ScrollArea>
+            </DialogContent>
+          </Dialog>
+        </section>
         
         {/* Footer */}
-        <footer className="text-center text-sm text-muted-foreground animate-fade-in-up animation-delay-400">
+        <footer className="text-center text-sm text-muted-foreground animate-fade-in-up animation-delay-400 space-y-2">
           <p>Namaz vakitleri T.C. Diyanet İşleri Başkanlığı verilerine dayanmaktadır.</p>
+          <p className="text-xs opacity-70">This site was developed by Seyrani Kenger.</p>
         </footer>
       </div>
     </div>
