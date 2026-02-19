@@ -828,7 +828,7 @@ function App() {
                     </tbody>
                   </table>
                 </div>
-              </ScrollArea>
+              </div>
             </DialogContent>
           </Dialog>
         </section>
