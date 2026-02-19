@@ -590,12 +590,12 @@ function App() {
       )}
       
       {/* Advertisement Area - Below Ramadan bar */}
-      <div 
-        className={`w-full flex justify-center bg-muted/30 ${ramadanInfo.isRamadan ? "mt-12" : ""}`}
-        data-testid="ad-container"
-      >
-        <div className="w-full max-w-5xl h-[250px] flex items-center justify-center overflow-hidden">
-          {!adImageError ? (
+      {!adImageError && (
+        <div 
+          className={`w-full flex justify-center bg-muted/30 ${ramadanInfo.isRamadan ? "mt-12" : ""}`}
+          data-testid="ad-container"
+        >
+          <div className="w-full max-w-5xl h-[80px] flex items-center justify-center overflow-hidden">
             <img 
               src="./reklam.png" 
               alt="Reklam"
@@ -603,13 +603,9 @@ function App() {
               onError={() => setAdImageError(true)}
               data-testid="ad-image"
             />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-muted-foreground/30 text-sm">
-              {/* Empty placeholder when no ad image */}
-            </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
       
       <div className="container mx-auto px-4 md:px-8 py-8 max-w-5xl">
         {/* Header */}
