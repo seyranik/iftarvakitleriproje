@@ -125,6 +125,7 @@
   },
   "universal_guidelines": {
     "spacing_rule": "Use 2x padding than normal. White space is luxury.",
+    "testing": "All interactive elements (buttons, inputs, links) MUST have a 'data-testid' attribute (kebab-case) for testing.",
     "border_radius": "Use 'rounded-3xl' for main containers, 'rounded-2xl' for cards.",
     "interaction": "Add 'active:scale-95' to all buttons. Add 'hover:text-primary' to interactive text.",
     "accessibility": "Ensure all text meets WCAG AA. Use 'text-foreground' on 'bg-background'.",
