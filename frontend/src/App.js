@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import "@/App.css";
-import { Sun, Moon, Sunrise, CloudSun, Sunset, Calendar, MapPin, UtensilsCrossed, Soup, Beef, Wheat, Salad, Cherry, CakeSlice } from "lucide-react";
+import { Sun, Moon, Sunrise, CloudSun, Sunset, Calendar, MapPin, UtensilsCrossed, Soup, Beef, Wheat, Salad, CakeSlice, Star, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,139 +14,49 @@ import { toast } from "sonner";
 const API_BASE = "https://ezanvakti.emushaf.net";
 
 // ============================================
-// MENU DATA - Traditional Turkish Iftar Items
+// STATIC MENU DATA - Embedded from JSON
+// No randomization, no modification
 // ============================================
 const MENU_DATA = {
-  soups: [
-    "Mercimek Çorbası", "Ezogelin Çorbası", "Tarhana Çorbası", "Yayla Çorbası",
-    "Domates Çorbası", "Şehriye Çorbası", "Tavuk Suyu Çorbası", "Düğün Çorbası",
-    "Paça Çorbası", "Işkembe Çorbası", "Sebze Çorbası", "Kremalı Mantar Çorbası",
-    "Patates Çorbası", "Havuç Çorbası", "Brokoli Çorbası", "Karnabahar Çorbası",
-    "Kabak Çorbası", "Bezelye Çorbası", "Yeşil Mercimek Çorbası", "Bulgur Çorbası",
-    "Erişte Çorbası", "Analı Kızlı Çorbası", "Toyga Çorbası", "Süzme Mercimek",
-    "Köfteli Şehriye Çorbası", "Pirinç Çorbası", "Un Çorbası", "Yoğurt Çorbası",
-    "Kemik Suyu Çorbası", "Bamya Çorbası", "Lahana Çorbası", "Pazı Çorbası"
+  "ramadan_menus": [
+    { "day": 1, "type": "standard", "soup": "Ezogelin Çorbası", "main": "Fırın Tavuk But", "side": "Pirinç Pilavı", "salad_or_meze": "Çoban Salata", "dessert": "Güllaç" },
+    { "day": 2, "type": "standard", "soup": "Mercimek Çorbası", "main": "Etli Kuru Fasulye", "side": "Pirinç Pilavı", "salad_or_meze": "Turşu", "dessert": "Revani" },
+    { "day": 3, "type": "standard", "soup": "Yayla Çorbası", "main": "Karnıyarık", "side": "Bulgur Pilavı", "salad_or_meze": "Cacık", "dessert": "Kemalpaşa Tatlısı" },
+    { "day": 4, "type": "standard", "soup": "Domates Çorbası", "main": "Tas Kebabı", "side": "Şehriyeli Pirinç Pilavı", "salad_or_meze": "Mevsim Salata", "dessert": "Sütlaç" },
+    { "day": 5, "type": "standard", "soup": "Tarhana Çorbası", "main": "Fırında Köfte Patates", "side": "Yoğurtlu Makarna", "salad_or_meze": "Havuç Tarator", "dessert": "Trileçe" },
+    { "day": 6, "type": "standard", "soup": "Sebze Çorbası", "main": "Tavuk Sote", "side": "Pirinç Pilavı", "salad_or_meze": "Göbek Salata", "dessert": "Kazandibi" },
+    { "day": 7, "type": "standard", "soup": "Düğün Çorbası", "main": "İzmir Köfte", "side": "Bulgur Pilavı", "salad_or_meze": "Mor Lahana Salatası", "dessert": "Baklava" },
+    { "day": 8, "type": "standard", "soup": "Mantar Çorbası", "main": "Etli Nohut", "side": "Pirinç Pilavı", "salad_or_meze": "Turşu", "dessert": "Muhallebi" },
+    { "day": 9, "type": "standard", "soup": "Şehriye Çorbası", "main": "Ali Nazik", "side": "Fırın Patates", "salad_or_meze": "Mevsim Salata", "dessert": "Keşkül" },
+    { "day": 10, "type": "standard", "soup": "Ezogelin Çorbası", "main": "Etli Taze Fasulye", "side": "Pirinç Pilavı", "salad_or_meze": "Cacık", "dessert": "Şekerpare" },
+    { "day": 11, "type": "standard", "soup": "Yayla Çorbası", "main": "Fırın Tavuk Baget", "side": "Bulgur Pilavı", "salad_or_meze": "Çoban Salata", "dessert": "Güllaç" },
+    { "day": 12, "type": "standard", "soup": "Mercimek Çorbası", "main": "Hünkar Beğendi", "side": "Pirinç Pilavı", "salad_or_meze": "Roka Salatası", "dessert": "Kazandibi" },
+    { "day": 13, "type": "standard", "soup": "Tarhana Çorbası", "main": "Sebzeli Güveç", "side": "Şehriyeli Bulgur Pilavı", "salad_or_meze": "Yoğurtlu Salata", "dessert": "Sütlaç" },
+    { "day": 14, "type": "standard", "soup": "Domates Çorbası", "main": "Izgara Köfte", "side": "Patates Püresi", "salad_or_meze": "Çoban Salata", "dessert": "Revani" },
+    { "day": 15, "type": "standard", "soup": "Sebze Çorbası", "main": "Tavuk Şiş", "side": "Bulgur Pilavı", "salad_or_meze": "Göbek Salata", "dessert": "Trileçe" },
+    { "day": 16, "type": "standard", "soup": "Düğün Çorbası", "main": "Etli Kabak Yemeği", "side": "Pirinç Pilavı", "salad_or_meze": "Cacık", "dessert": "Kemalpaşa Tatlısı" },
+    { "day": 17, "type": "standard", "soup": "Mantar Çorbası", "main": "Sac Kavurma", "side": "Bulgur Pilavı", "salad_or_meze": "Mevsim Salata", "dessert": "Fırın Sütlaç" },
+    { "day": 18, "type": "standard", "soup": "Ezogelin Çorbası", "main": "Fırında Levrek", "side": "Zeytinyağlı Enginar", "salad_or_meze": "Roka Salatası", "dessert": "Muhallebi" },
+    { "day": 19, "type": "standard", "soup": "Yayla Çorbası", "main": "Kıymalı Ispanak", "side": "Pirinç Pilavı", "salad_or_meze": "Turşu", "dessert": "Şekerpare" },
+    { "day": 20, "type": "standard", "soup": "Mercimek Çorbası", "main": "Beşamel Soslu Tavuk", "side": "Fırın Makarna", "salad_or_meze": "Çoban Salata", "dessert": "Kazandibi" },
+    { "day": 21, "type": "standard", "soup": "Tarhana Çorbası", "main": "Etli Patlıcan Musakka", "side": "Bulgur Pilavı", "salad_or_meze": "Cacık", "dessert": "Revani" },
+    { "day": 22, "type": "standard", "soup": "Domates Çorbası", "main": "Izgara Tavuk Kanat", "side": "Pirinç Pilavı", "salad_or_meze": "Mevsim Salata", "dessert": "Güllaç" },
+    { "day": 23, "type": "standard", "soup": "Sebze Çorbası", "main": "Etli Bezelye", "side": "Pirinç Pilavı", "salad_or_meze": "Havuç Salatası", "dessert": "Süt Helvası" },
+    { "day": 24, "type": "standard", "soup": "Düğün Çorbası", "main": "İç Pilavlı Tavuk Dolması", "side": "Zeytinyağlı Yaprak Sarma", "salad_or_meze": "Mevsim Salata", "dessert": "Baklava" },
+    { "day": 25, "type": "standard", "soup": "Mantar Çorbası", "main": "Kuzu Tandır", "side": "Bulgur Pilavı", "salad_or_meze": "Roka Salatası", "dessert": "Keşkül" },
+    { "day": 26, "type": "standard", "soup": "Ezogelin Çorbası", "main": "Sebzeli Tavuk Güveç", "side": "Şehriyeli Pirinç Pilavı", "salad_or_meze": "Cacık", "dessert": "Muhallebi" },
+    { "day": 27, "type": "kadir_gecesi_special", "soup": "Bademli Tavuk Çorbası", "main": "Hünkar Beğendi", "side": "İç Pilav", "salad_or_meze": "Zeytinyağlı Yaprak Sarma", "dessert": "Nar ve Antep Fıstıklı Güllaç" },
+    { "day": 28, "type": "standard", "soup": "Mercimek Çorbası", "main": "Fırın Köfte", "side": "Patates Püresi", "salad_or_meze": "Çoban Salata", "dessert": "Revani" },
+    { "day": 29, "type": "standard", "soup": "Yayla Çorbası", "main": "Etli Kuru Fasulye", "side": "Pirinç Pilavı", "salad_or_meze": "Turşu", "dessert": "Fırın Sütlaç" }
   ],
-  mainDishes: [
-    "Kuru Fasulye", "Nohutlu Pilav", "Etli Türlü", "Tavuk Sote",
-    "İzmir Köfte", "Karnıyarık", "İmam Bayıldı", "Hünkar Beğendi",
-    "Tas Kebabı", "Orman Kebabı", "Terbiyeli Köfte", "Kadınbudu Köfte",
-    "Patlıcan Musakka", "Kabak Musakka", "Etli Kapuska", "Etli Lahana Sarması",
-    "Yaprak Sarma", "Etli Biber Dolması", "Etli Patlıcan Dolması", "Etli Kabak Dolması",
-    "Tavuk Tandır", "Fırın Tavuk", "Tavuklu Güveç", "Et Güveç",
-    "Kuzu Tandır", "Kuzu Incik", "Dana Haşlama", "Et Kavurma",
-    "Piliç Şnitzel", "Tavuk Pirzola", "Bonfile", "Antrikot"
-  ],
-  sideDishes: [
-    "Pirinç Pilavı", "Bulgur Pilavı", "Şehriyeli Pilav", "Tereyağlı Pilav",
-    "İç Pilav", "Nohutlu Pilav", "Bademli Pilav", "Fıstıklı Pilav",
-    "Domatesli Pilav", "Sebzeli Pilav", "Mantarlı Pilav", "Havuçlu Pilav",
-    "Kestaneli Pilav", "Üzümlü Pilav", "Kuş Üzümlü Pilav", "Tavuklu Pilav",
-    "Makarna", "Fiyonk Makarna", "Kalem Makarna", "Burgu Makarna",
-    "Erişte", "Mantı", "Kayseri Mantısı", "Türk Raviolisi",
-    "Domates Soslu Makarna", "Kremalı Makarna", "Fırın Makarna", "Kıymalı Makarna",
-    "Arpa Şehriye Pilavı", "Tel Şehriye Pilavı", "Kuskus", "Kinoa Pilavı"
-  ],
-  salads: [
-    "Çoban Salata", "Mevsim Salata", "Akdeniz Salata", "Yeşil Salata",
-    "Roka Salata", "Marul Salata", "Havuç Salata", "Lahana Salata",
-    "Turp Salata", "Pancar Salata", "Patates Salata", "Makarna Salata",
-    "Ton Balıklı Salata", "Tavuk Salata", "Sezar Salata", "Yunan Salata",
-    "Rus Salata", "Amerikan Salata", "Kısır", "Gavurdağı Salata",
-    "Piyaz", "Çingene Salata", "Karışık Salata", "Bahar Salata",
-    "Enginar Salata", "Semizotu Salata", "Nohut Salata", "Fasulye Salata",
-    "Mercimek Salata", "Kinoa Salata", "Bulgur Salata", "Közlenmiş Biber Salata"
-  ],
-  mezes: [
-    "Humus", "Haydari", "Atom", "Acılı Ezme", "Muhammara", "Babaganuş",
-    "Köpoğlu", "Patlıcan Salata", "Tarator", "Cacık", "Yoğurtlu Patlıcan",
-    "Yoğurtlu Kabak", "Yoğurtlu Semizotu", "Yoğurtlu Havuç", "Yoğurtlu Ispanak",
-    "Zeytinyağlı Fasulye", "Zeytinyağlı Barbunya", "Zeytinyağlı Bakla",
-    "Zeytinyağlı Enginar", "Zeytinyağlı Kereviz", "Zeytinyağlı Pırasa",
-    "Turşu", "Zeytin", "Peynir Tabağı", "Beyaz Peynir", "Fava",
-    "Mercimek Köfte", "Patates Köfte", "Mücver", "Sigara Böreği",
-    "Paçanga Böreği", "Çiğ Köfte", "İçli Köfte", "Fellah Köfte", "Kısır",
-    "Ezme", "Şakşuka", "Patlıcan Biber Kızartma", "Kabak Kızartma",
-    "Havuç Tarator", "Kereviz Tarator", "Sarımsaklı Yoğurt", "Naneli Yoğurt",
-    "Biber Turşusu", "Lahana Turşusu", "Közlenmiş Patlıcan", "Közlenmiş Biber",
-    "Lor Peynir", "Tulum Peynir", "Çökelek", "Kaşar Peynir",
-    "Gözleme", "Katmer", "Simit", "Poğaça", "Açma", "Pişi"
-  ],
-  desserts: [
-    "Baklava", "Kadayıf", "Künefe", "Şöbiyet", "Sütlaç", "Muhallebi",
-    "Kazandibi", "Tavuk Göğsü", "Keşkül", "Aşure", "Güllaç", "Lokma",
-    "Tulumba", "Şekerpare", "Revani", "Kalburabasma", "Trileçe", "Tiramisu",
-    "Profiterol", "Supangle", "Mozaik Pasta", "Cheesecake", "Brownie",
-    "Magnolia", "San Sebastian", "Fırın Sütlaç", "Höşmerim", "Kabak Tatlısı",
-    "Ayva Tatlısı", "Armut Tatlısı", "Helva", "Tahin Helva", "Un Helva"
+  "eid_special_menus": [
+    { "day": 1, "type": "eid_special", "soup": "Mercimek Çorbası", "main": "Kurban Kavurma", "side": "Pirinç Pilavı", "salad_or_meze": "Çoban Salata", "dessert": "Baklava" },
+    { "day": 2, "type": "eid_special", "soup": "Yayla Çorbası", "main": "Fırında Tavuk Dolması", "side": "İç Pilav", "salad_or_meze": "Zeytinyağlı Yaprak Sarma", "dessert": "Şöbiyet" },
+    { "day": 3, "type": "eid_special", "soup": "Ezogelin Çorbası", "main": "Izgara Köfte", "side": "Patates Püresi", "salad_or_meze": "Rus Salatası", "dessert": "Kadayıf" }
   ]
 };
 
-// Seeded Random Number Generator (Mulberry32)
-class SeededRandom {
-  constructor(seed) {
-    this.seed = seed;
-  }
-  next() {
-    let t = this.seed += 0x6D2B79F5;
-    t = Math.imul(t ^ t >>> 15, t | 1);
-    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-  }
-  nextInt(max) {
-    return Math.floor(this.next() * max);
-  }
-  shuffle(array) {
-    const result = [...array];
-    for (let i = result.length - 1; i > 0; i--) {
-      const j = this.nextInt(i + 1);
-      [result[i], result[j]] = [result[j], result[i]];
-    }
-    return result;
-  }
-}
-
-// Generate all 29 Ramadan menus deterministically
-function generateRamadanMenus() {
-  const cached = localStorage.getItem("ramadan-menus-2026");
-  if (cached) {
-    try {
-      const menus = JSON.parse(cached);
-      if (menus && menus.length === 29) return menus;
-    } catch (e) {
-      localStorage.removeItem("ramadan-menus-2026");
-    }
-  }
-  
-  const rng = new SeededRandom(2026 * 1000);
-  const shuffledSoups = rng.shuffle(MENU_DATA.soups).slice(0, 29);
-  const shuffledMains = rng.shuffle(MENU_DATA.mainDishes).slice(0, 29);
-  const shuffledSides = rng.shuffle(MENU_DATA.sideDishes).slice(0, 29);
-  const shuffledSalads = rng.shuffle(MENU_DATA.salads).slice(0, 29);
-  const shuffledMezes = rng.shuffle(MENU_DATA.mezes);
-  const shuffledDesserts = rng.shuffle(MENU_DATA.desserts).slice(0, 29);
-  
-  const menus = [];
-  for (let day = 1; day <= 29; day++) {
-    menus.push({
-      day,
-      soup: shuffledSoups[day - 1],
-      main: shuffledMains[day - 1],
-      side: shuffledSides[day - 1],
-      salad: shuffledSalads[day - 1],
-      meze1: shuffledMezes[(day - 1) * 2],
-      meze2: shuffledMezes[(day - 1) * 2 + 1],
-      dessert: shuffledDesserts[day - 1]
-    });
-  }
-  
-  localStorage.setItem("ramadan-menus-2026", JSON.stringify(menus));
-  return menus;
-}
-
-const RAMADAN_MENUS = generateRamadanMenus();
-
-// Turkish cities with Diyanet API IDs (şehir ID + ilçe ID for merkez)
+// Turkish cities with Diyanet API IDs
 const TURKISH_CITIES = [
   { name: "Adana", displayName: "ADANA", sehirId: "500", ilceId: "9146" },
   { name: "Ankara", displayName: "ANKARA", sehirId: "506", ilceId: "9206" },
@@ -169,13 +79,12 @@ const TURKISH_CITIES = [
 ];
 
 // Ramadan 2026 dates for Turkey (official)
-// Starts: February 19, 2026 (1 Ramazan 1447)
-// Ends: March 19, 2026 (29 Ramazan 1447) - Last day of Ramadan
-// Eid: March 20, 2026
 const RAMADAN_2026 = {
   start: new Date(2026, 1, 19), // Feb 19, 2026
   end: new Date(2026, 2, 19),   // Mar 19, 2026 (last day of Ramadan)
-  totalDays: 29 // 29 days for Ramadan 2026
+  totalDays: 29,
+  eidStart: new Date(2026, 2, 20), // Eid starts Mar 20, 2026
+  eidEnd: new Date(2026, 2, 22)    // Eid ends Mar 22, 2026 (3 days)
 };
 
 // Generate all Ramadan dates
@@ -263,6 +172,20 @@ function isDateInRamadan(date) {
   return checkDate >= start && checkDate <= end;
 }
 
+// Check if date is within Eid period
+function isDateInEid(date) {
+  const checkDate = new Date(date);
+  checkDate.setHours(0, 0, 0, 0);
+  
+  const start = new Date(RAMADAN_2026.eidStart);
+  start.setHours(0, 0, 0, 0);
+  
+  const end = new Date(RAMADAN_2026.eidEnd);
+  end.setHours(23, 59, 59, 999);
+  
+  return checkDate >= start && checkDate <= end;
+}
+
 // Get Ramadan day number for a given date
 function getRamadanDayNumber(date) {
   if (!isDateInRamadan(date)) return null;
@@ -276,27 +199,101 @@ function getRamadanDayNumber(date) {
   const diffTime = checkDate - start;
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   
-  return diffDays + 1; // Day 1 = Feb 19
+  return diffDays + 1;
 }
 
-// Get Ramadan info for today
-function getRamadanInfo() {
+// Get Eid day number for a given date
+function getEidDayNumber(date) {
+  if (!isDateInEid(date)) return null;
+  
+  const checkDate = new Date(date);
+  checkDate.setHours(0, 0, 0, 0);
+  
+  const start = new Date(RAMADAN_2026.eidStart);
+  start.setHours(0, 0, 0, 0);
+  
+  const diffTime = checkDate - start;
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  return diffDays + 1;
+}
+
+// Get current period info (Ramadan, Eid, or neither)
+function getPeriodInfo() {
   const today = new Date();
   
-  if (!isDateInRamadan(today)) {
-    return { isRamadan: false };
+  if (isDateInRamadan(today)) {
+    const dayOfRamadan = getRamadanDayNumber(today);
+    const totalDays = RAMADAN_2026.totalDays;
+    const progress = (dayOfRamadan / totalDays) * 100;
+    
+    return {
+      period: "ramadan",
+      isRamadan: true,
+      isEid: false,
+      dayOfRamadan,
+      totalDays,
+      progress
+    };
   }
   
-  const dayOfRamadan = getRamadanDayNumber(today);
-  const totalDays = RAMADAN_2026.totalDays;
-  const progress = (dayOfRamadan / totalDays) * 100;
+  if (isDateInEid(today)) {
+    const dayOfEid = getEidDayNumber(today);
+    
+    return {
+      period: "eid",
+      isRamadan: false,
+      isEid: true,
+      dayOfEid,
+      totalEidDays: 3
+    };
+  }
   
-  return {
-    isRamadan: true,
-    dayOfRamadan,
-    totalDays,
-    progress
-  };
+  return { period: "none", isRamadan: false, isEid: false };
+}
+
+// Get menu for current day - DETERMINISTIC, NO RANDOMIZATION
+function getCurrentMenu(periodInfo) {
+  if (periodInfo.isRamadan && periodInfo.dayOfRamadan >= 1 && periodInfo.dayOfRamadan <= 29) {
+    return MENU_DATA.ramadan_menus[periodInfo.dayOfRamadan - 1];
+  }
+  
+  if (periodInfo.isEid && periodInfo.dayOfEid >= 1 && periodInfo.dayOfEid <= 3) {
+    return MENU_DATA.eid_special_menus[periodInfo.dayOfEid - 1];
+  }
+  
+  // Default to Day 1 Ramadan menu for preview
+  return MENU_DATA.ramadan_menus[0];
+}
+
+// Get menu type display info
+function getMenuTypeInfo(menuType) {
+  switch (menuType) {
+    case "kadir_gecesi_special":
+      return {
+        label: "Kadir Gecesi Özel",
+        badgeClass: "bg-gradient-to-r from-purple-600 to-indigo-600",
+        cardClass: "ring-2 ring-purple-500/50 bg-gradient-to-br from-purple-900/20 to-indigo-900/20",
+        icon: Star,
+        iconClass: "text-purple-400"
+      };
+    case "eid_special":
+      return {
+        label: "Bayram Özel",
+        badgeClass: "bg-gradient-to-r from-amber-500 to-orange-500",
+        cardClass: "ring-2 ring-amber-500/50 bg-gradient-to-br from-amber-900/20 to-orange-900/20",
+        icon: Sparkles,
+        iconClass: "text-amber-400"
+      };
+    default:
+      return {
+        label: null,
+        badgeClass: "bg-primary",
+        cardClass: "",
+        icon: null,
+        iconClass: ""
+      };
+  }
 }
 
 // ============================================
@@ -304,18 +301,19 @@ function getRamadanInfo() {
 // ============================================
 function App() {
   // State
-  const [theme, setTheme] = useState("dark"); // Default to dark
+  const [theme, setTheme] = useState("dark");
   const [city, setCity] = useState(null);
   const [prayerTimes, setPrayerTimes] = useState(null);
   const [monthlyData, setMonthlyData] = useState([]);
-  const [fullRamadanData, setFullRamadanData] = useState([]); // Full 29 days of Ramadan
-  const [ramadanInfo, setRamadanInfo] = useState({ isRamadan: false });
+  const [fullRamadanData, setFullRamadanData] = useState([]);
+  const [periodInfo, setPeriodInfo] = useState({ period: "none", isRamadan: false, isEid: false });
   const [countdown, setCountdown] = useState({ hours: "00", minutes: "00", seconds: "00", total: 0 });
   const [loading, setLoading] = useState(true);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [iftarPassed, setIftarPassed] = useState(false);
+  const [currentMenu, setCurrentMenu] = useState(null);
   
-  // Refs for interval management (prevents memory leaks)
+  // Refs for interval management
   const countdownIntervalRef = useRef(null);
   const dateCheckIntervalRef = useRef(null);
 
@@ -338,6 +336,15 @@ function App() {
     document.documentElement.classList.add(theme);
     localStorage.setItem("prayer-theme", theme);
   }, [theme]);
+
+  // ============================================
+  // PERIOD & MENU INITIALIZATION
+  // ============================================
+  useEffect(() => {
+    const info = getPeriodInfo();
+    setPeriodInfo(info);
+    setCurrentMenu(getCurrentMenu(info));
+  }, []);
 
   // ============================================
   // CITY INITIALIZATION
@@ -371,7 +378,6 @@ function App() {
       }
     }
     
-    // Default to Erzincan
     const defaultCity = TURKISH_CITIES.find(c => c.name === "Erzincan") || TURKISH_CITIES[0];
     setCity(defaultCity);
     localStorage.setItem("prayer-city", JSON.stringify(defaultCity));
@@ -401,7 +407,6 @@ function App() {
         }
       }
       
-      // Fetch from Diyanet API
       const response = await fetch(`${API_BASE}/vakitler/${selectedCity.ilceId}`);
       
       if (!response.ok) {
@@ -414,16 +419,13 @@ function App() {
         throw new Error("No data received from API");
       }
       
-      // Cache the data
       localStorage.setItem(cacheKey, JSON.stringify(data));
-      
       processApiData(data, today);
       
     } catch (error) {
       console.error("Failed to fetch prayer times:", error);
       toast.error("Namaz vakitleri alınamadı. Lütfen tekrar deneyin.");
       
-      // Try fallback
       const fallbackKey = `diyanet-times-${selectedCity.ilceId}`;
       const fallback = localStorage.getItem(fallbackKey);
       if (fallback) {
@@ -444,7 +446,6 @@ function App() {
   const processApiData = useCallback((data, today) => {
     setMonthlyData(data);
     
-    // Find today's prayer times
     const todayStr = `${today.getDate().toString().padStart(2, "0")}.${(today.getMonth() + 1).toString().padStart(2, "0")}.${today.getFullYear()}`;
     
     const todayData = data.find(day => day.MiladiTarihKisa === todayStr);
@@ -472,14 +473,14 @@ function App() {
       });
     }
     
-    // Calculate Ramadan info
-    const ramadan = getRamadanInfo();
-    setRamadanInfo(ramadan);
+    // Update period info
+    const info = getPeriodInfo();
+    setPeriodInfo(info);
+    setCurrentMenu(getCurrentMenu(info));
     
     // Extract Ramadan days from current data
-    if (ramadan.isRamadan) {
+    if (info.isRamadan) {
       const ramadanDays = data.filter(day => {
-        // Parse date from DD.MM.YYYY format
         const parts = day.MiladiTarihKisa.split(".");
         if (parts.length === 3) {
           const date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
@@ -508,7 +509,7 @@ function App() {
   }, [city, fetchPrayerTimes]);
 
   // ============================================
-  // FETCH FULL RAMADAN DATA (Feb + March)
+  // FETCH FULL RAMADAN DATA
   // ============================================
   const fetchFullRamadanSchedule = useCallback(async () => {
     if (!city || !city.ilceId) return [];
@@ -519,7 +520,7 @@ function App() {
     if (cached) {
       try {
         const data = JSON.parse(cached);
-        if (data.length >= 28) { // At least 28 days
+        if (data.length >= 28) {
           setFullRamadanData(data);
           return data;
         }
@@ -529,19 +530,16 @@ function App() {
     }
     
     try {
-      // Fetch current month data
       const response = await fetch(`${API_BASE}/vakitler/${city.ilceId}`);
       if (!response.ok) throw new Error("API error");
       
       const data = await response.json();
       
-      // Create a map of date -> prayer times from API
       const apiDataMap = {};
       data.forEach(day => {
         apiDataMap[day.MiladiTarihKisa] = day;
       });
       
-      // Build complete Ramadan schedule using ALL_RAMADAN_DATES
       const completeRamadanData = ALL_RAMADAN_DATES.map(ramadanDate => {
         const apiDay = apiDataMap[ramadanDate.dateStr];
         
@@ -551,7 +549,6 @@ function App() {
             ramadanDay: ramadanDate.dayNumber
           };
         } else {
-          // Day not in API response - create placeholder
           return {
             MiladiTarihKisa: ramadanDate.dateStr,
             Imsak: "--:--",
@@ -657,8 +654,9 @@ function App() {
         if (city) {
           fetchPrayerTimes(city);
         }
-        // Update Ramadan info on date change
-        setRamadanInfo(getRamadanInfo());
+        const info = getPeriodInfo();
+        setPeriodInfo(info);
+        setCurrentMenu(getCurrentMenu(info));
       }
     };
     
@@ -698,6 +696,9 @@ function App() {
     fetchFullRamadanSchedule();
   }, [fetchFullRamadanSchedule]);
 
+  // Get menu type styling
+  const menuTypeInfo = currentMenu ? getMenuTypeInfo(currentMenu.type) : getMenuTypeInfo("standard");
+
   // Prayer order for display
   const prayerOrder = ["Imsak", "Gunes", "Ogle", "Ikindi", "Aksam", "Yatsi"];
 
@@ -709,18 +710,31 @@ function App() {
       <Toaster position="top-center" richColors />
       
       {/* Ramadan Progress Bar */}
-      {ramadanInfo.isRamadan && (
+      {periodInfo.isRamadan && (
         <div className="fixed top-0 left-0 right-0 z-50" data-testid="ramadan-progress">
-          <Progress value={ramadanInfo.progress} className="h-1 rounded-none" />
+          <Progress value={periodInfo.progress} className="h-1 rounded-none" />
           <div className="bg-primary/10 backdrop-blur-sm py-2 px-4 text-center">
             <span className="text-sm font-medium text-primary">
-              Ramazan'ın {ramadanInfo.dayOfRamadan}. günü — %{Math.round(ramadanInfo.progress)}
+              Ramazan'ın {periodInfo.dayOfRamadan}. günü — %{Math.round(periodInfo.progress)}
             </span>
           </div>
         </div>
       )}
       
-      <div className={`container mx-auto px-4 md:px-8 py-8 max-w-5xl ${ramadanInfo.isRamadan ? "pt-16" : ""}`}>
+      {/* Eid Banner */}
+      {periodInfo.isEid && (
+        <div className="fixed top-0 left-0 right-0 z-50" data-testid="eid-banner">
+          <div className="bg-gradient-to-r from-amber-500 to-orange-500 py-3 px-4 text-center">
+            <span className="text-sm font-bold text-white flex items-center justify-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              Ramazan Bayramı'nın {periodInfo.dayOfEid}. Günü — Bayramınız Mübarek Olsun!
+              <Sparkles className="w-4 h-4" />
+            </span>
+          </div>
+        </div>
+      )}
+      
+      <div className={`container mx-auto px-4 md:px-8 py-8 max-w-5xl ${periodInfo.isRamadan || periodInfo.isEid ? "pt-16" : ""}`}>
         {/* Header */}
         <header className="flex items-center justify-between mb-12 animate-fade-in-up">
           {/* City Selector */}
@@ -788,7 +802,7 @@ function App() {
           ) : (
             <>
               <p className="text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground mb-4">
-                İftar'a Kalan Süre
+                {periodInfo.isEid ? "Akşam Yemeğine" : "İftar'a"} Kalan Süre
               </p>
               
               {/* Countdown Timer */}
@@ -818,7 +832,9 @@ function App() {
               {/* Iftar Time */}
               {prayerTimes && (
                 <div className="text-center">
-                  <p className="text-muted-foreground text-sm mb-1">Bugünkü İftar Vakti</p>
+                  <p className="text-muted-foreground text-sm mb-1">
+                    {periodInfo.isEid ? "Akşam Vakti" : "Bugünkü İftar Vakti"}
+                  </p>
                   <p className="text-3xl md:text-4xl font-light text-primary" data-testid="iftar-time">
                     {prayerTimes.Aksam}
                   </p>
@@ -828,110 +844,138 @@ function App() {
           )}
         </section>
         
-        {/* Daily Iftar Menu */}
-        <section className="mb-8 animate-fade-in-up animation-delay-150" data-testid="menu-section">
-          <div className="bg-card border border-border rounded-2xl overflow-hidden">
-            {/* Menu Header */}
-            <div className="flex items-center justify-between px-5 py-4 bg-primary/5 border-b border-border">
-              <div className="flex items-center gap-3">
-                <UtensilsCrossed className="w-5 h-5 text-primary" />
-                <h2 className="text-lg font-medium text-foreground">Günün İftar Menüsü</h2>
+        {/* Daily Menu Card */}
+        {currentMenu && (
+          <section className={`mb-8 animate-fade-in-up animation-delay-150`} data-testid="menu-section">
+            <div className={`bg-card border border-border rounded-2xl overflow-hidden ${menuTypeInfo.cardClass}`}>
+              {/* Menu Header */}
+              <div className={`flex items-center justify-between px-5 py-4 border-b border-border ${
+                currentMenu.type === "kadir_gecesi_special" 
+                  ? "bg-gradient-to-r from-purple-900/30 to-indigo-900/30" 
+                  : currentMenu.type === "eid_special"
+                    ? "bg-gradient-to-r from-amber-900/30 to-orange-900/30"
+                    : "bg-primary/5"
+              }`}>
+                <div className="flex items-center gap-3">
+                  {menuTypeInfo.icon ? (
+                    <menuTypeInfo.icon className={`w-5 h-5 ${menuTypeInfo.iconClass}`} />
+                  ) : (
+                    <UtensilsCrossed className="w-5 h-5 text-primary" />
+                  )}
+                  <div>
+                    <h2 className="text-lg font-medium text-foreground">
+                      {periodInfo.isEid ? "Bayram Menüsü" : "Günün İftar Menüsü"}
+                    </h2>
+                    {menuTypeInfo.label && (
+                      <p className={`text-xs font-medium ${menuTypeInfo.iconClass}`}>
+                        {menuTypeInfo.label}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {currentMenu.type === "kadir_gecesi_special" && (
+                    <span className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1">
+                      <Star className="w-3 h-3" />
+                      Kadir Gecesi
+                    </span>
+                  )}
+                  {currentMenu.type === "eid_special" && (
+                    <span className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" />
+                      Bayram
+                    </span>
+                  )}
+                  <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${menuTypeInfo.badgeClass} text-primary-foreground`}>
+                    {periodInfo.isRamadan 
+                      ? `${periodInfo.dayOfRamadan}. Gün` 
+                      : periodInfo.isEid 
+                        ? `${periodInfo.dayOfEid}. Gün`
+                        : "Örnek"
+                    }
+                  </span>
+                </div>
               </div>
-              <span className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1.5 rounded-full">
-                {ramadanInfo.isRamadan ? `${ramadanInfo.dayOfRamadan}. Gün` : "Örnek"}
-              </span>
+              
+              {/* Menu Content */}
+              <div className="p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                  {/* Soup */}
+                  <div className="flex items-start gap-3 p-4 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
+                    <div className="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center flex-shrink-0">
+                      <Soup className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Çorba</span>
+                      <p className="text-sm font-medium text-foreground leading-tight" data-testid="menu-soup">
+                        {currentMenu.soup}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Main Dish */}
+                  <div className="flex items-start gap-3 p-4 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
+                    <div className="w-10 h-10 rounded-lg bg-red-500 flex items-center justify-center flex-shrink-0">
+                      <Beef className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Ana Yemek</span>
+                      <p className="text-sm font-medium text-foreground leading-tight" data-testid="menu-main">
+                        {currentMenu.main}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Side Dish */}
+                  <div className="flex items-start gap-3 p-4 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
+                    <div className="w-10 h-10 rounded-lg bg-violet-500 flex items-center justify-center flex-shrink-0">
+                      <Wheat className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Pilav / Yan</span>
+                      <p className="text-sm font-medium text-foreground leading-tight" data-testid="menu-side">
+                        {currentMenu.side}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Salad/Meze */}
+                  <div className="flex items-start gap-3 p-4 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
+                    <div className="w-10 h-10 rounded-lg bg-green-500 flex items-center justify-center flex-shrink-0">
+                      <Salad className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Salata / Meze</span>
+                      <p className="text-sm font-medium text-foreground leading-tight" data-testid="menu-salad">
+                        {currentMenu.salad_or_meze}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Dessert */}
+                  <div className="flex items-start gap-3 p-4 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
+                    <div className="w-10 h-10 rounded-lg bg-orange-500 flex items-center justify-center flex-shrink-0">
+                      <CakeSlice className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tatlı</span>
+                      <p className="text-sm font-medium text-foreground leading-tight" data-testid="menu-dessert">
+                        {currentMenu.dessert}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Sample note for non-Ramadan/Eid */}
+              {!periodInfo.isRamadan && !periodInfo.isEid && (
+                <div className="px-4 py-2 bg-primary/5 border-t border-border text-center">
+                  <span className="text-xs text-muted-foreground">Örnek Menü (Ramazan / Bayram Dışı)</span>
+                </div>
+              )}
             </div>
-            
-            {/* Menu Content */}
-            <div className="p-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {/* Soup */}
-                <div className="flex items-start gap-3 p-3 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
-                  <div className="w-9 h-9 rounded-lg bg-amber-500 flex items-center justify-center flex-shrink-0">
-                    <Soup className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Çorba</span>
-                    <p className="text-sm font-medium text-foreground leading-tight">{ramadanInfo.isRamadan ? RAMADAN_MENUS[ramadanInfo.dayOfRamadan - 1]?.soup : RAMADAN_MENUS[0]?.soup}</p>
-                  </div>
-                </div>
-                
-                {/* Main Dish */}
-                <div className="flex items-start gap-3 p-3 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
-                  <div className="w-9 h-9 rounded-lg bg-red-500 flex items-center justify-center flex-shrink-0">
-                    <Beef className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Ana Yemek</span>
-                    <p className="text-sm font-medium text-foreground leading-tight">{ramadanInfo.isRamadan ? RAMADAN_MENUS[ramadanInfo.dayOfRamadan - 1]?.main : RAMADAN_MENUS[0]?.main}</p>
-                  </div>
-                </div>
-                
-                {/* Side Dish */}
-                <div className="flex items-start gap-3 p-3 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
-                  <div className="w-9 h-9 rounded-lg bg-violet-500 flex items-center justify-center flex-shrink-0">
-                    <Wheat className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Pilav</span>
-                    <p className="text-sm font-medium text-foreground leading-tight">{ramadanInfo.isRamadan ? RAMADAN_MENUS[ramadanInfo.dayOfRamadan - 1]?.side : RAMADAN_MENUS[0]?.side}</p>
-                  </div>
-                </div>
-                
-                {/* Salad */}
-                <div className="flex items-start gap-3 p-3 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
-                  <div className="w-9 h-9 rounded-lg bg-green-500 flex items-center justify-center flex-shrink-0">
-                    <Salad className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Salata</span>
-                    <p className="text-sm font-medium text-foreground leading-tight">{ramadanInfo.isRamadan ? RAMADAN_MENUS[ramadanInfo.dayOfRamadan - 1]?.salad : RAMADAN_MENUS[0]?.salad}</p>
-                  </div>
-                </div>
-                
-                {/* Meze 1 */}
-                <div className="flex items-start gap-3 p-3 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
-                  <div className="w-9 h-9 rounded-lg bg-pink-500 flex items-center justify-center flex-shrink-0">
-                    <Cherry className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Meze</span>
-                    <p className="text-sm font-medium text-foreground leading-tight">{ramadanInfo.isRamadan ? RAMADAN_MENUS[ramadanInfo.dayOfRamadan - 1]?.meze1 : RAMADAN_MENUS[0]?.meze1}</p>
-                  </div>
-                </div>
-                
-                {/* Meze 2 */}
-                <div className="flex items-start gap-3 p-3 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
-                  <div className="w-9 h-9 rounded-lg bg-pink-500 flex items-center justify-center flex-shrink-0">
-                    <Cherry className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Meze</span>
-                    <p className="text-sm font-medium text-foreground leading-tight">{ramadanInfo.isRamadan ? RAMADAN_MENUS[ramadanInfo.dayOfRamadan - 1]?.meze2 : RAMADAN_MENUS[0]?.meze2}</p>
-                  </div>
-                </div>
-                
-                {/* Dessert - spans 2 columns on mobile */}
-                <div className="col-span-2 md:col-span-2 flex items-start gap-3 p-3 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
-                  <div className="w-9 h-9 rounded-lg bg-orange-500 flex items-center justify-center flex-shrink-0">
-                    <CakeSlice className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tatlı</span>
-                    <p className="text-sm font-medium text-foreground leading-tight">{ramadanInfo.isRamadan ? RAMADAN_MENUS[ramadanInfo.dayOfRamadan - 1]?.dessert : RAMADAN_MENUS[0]?.dessert}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Sample note for non-Ramadan */}
-            {!ramadanInfo.isRamadan && (
-              <div className="px-4 py-2 bg-primary/5 border-t border-border text-center">
-                <span className="text-xs text-muted-foreground">Örnek Menü (Ramazan Dışı)</span>
-              </div>
-            )}
-          </div>
-        </section>
+          </section>
+        )}
         
         {/* Prayer Times Grid */}
         {prayerTimes && (
@@ -977,19 +1021,21 @@ function App() {
                 data-testid="schedule-button"
               >
                 <Calendar className="w-5 h-5" />
-                {ramadanInfo.isRamadan ? "Ramazan İmsakiyesi" : "Aylık Takvim"}
+                {periodInfo.isRamadan ? "Ramazan İmsakiyesi" : periodInfo.isEid ? "Bayram Programı" : "Aylık Takvim"}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[80vh] p-0 overflow-hidden" data-testid="schedule-modal">
               <DialogHeader className="p-6 pb-0">
                 <DialogTitle className="text-2xl font-light flex items-center gap-2">
                   <Calendar className="w-6 h-6 text-primary" />
-                  {city?.name} — {ramadanInfo.isRamadan ? "Ramazan İmsakiyesi 2026" : "Aylık Namaz Vakitleri"}
+                  {city?.name} — {periodInfo.isRamadan ? "Ramazan İmsakiyesi 2026" : periodInfo.isEid ? "Bayram Programı" : "Aylık Namaz Vakitleri"}
                 </DialogTitle>
                 <DialogDescription className="text-sm text-muted-foreground mt-1">
-                  {ramadanInfo.isRamadan 
+                  {periodInfo.isRamadan 
                     ? "19 Şubat - 19 Mart 2026 (29 gün)" 
-                    : `${city?.name} için aylık namaz vakitleri`
+                    : periodInfo.isEid
+                      ? "20 Mart - 22 Mart 2026 (3 gün)"
+                      : `${city?.name} için aylık namaz vakitleri`
                   }
                 </DialogDescription>
               </DialogHeader>
@@ -998,7 +1044,7 @@ function App() {
                   <table className="w-full text-sm">
                     <thead className="sticky top-0 bg-background z-10">
                       <tr className="border-b">
-                        {ramadanInfo.isRamadan ? (
+                        {periodInfo.isRamadan ? (
                           <th className="text-center py-3 px-2 font-medium text-primary whitespace-nowrap">Gün</th>
                         ) : null}
                         <th className="text-left py-3 px-2 font-medium text-muted-foreground whitespace-nowrap">Tarih</th>
@@ -1011,24 +1057,32 @@ function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      {(ramadanInfo.isRamadan ? fullRamadanData : monthlyData).map((day, index) => {
+                      {(periodInfo.isRamadan ? fullRamadanData : monthlyData).map((day, index) => {
                         const today = new Date();
                         const todayStr = `${today.getDate().toString().padStart(2, "0")}.${(today.getMonth() + 1).toString().padStart(2, "0")}.${today.getFullYear()}`;
                         const isToday = day.MiladiTarihKisa === todayStr;
-                        
-                        // Use ramadanDay from data or calculate
                         const ramadanDay = day.ramadanDay || index + 1;
                         const isPlaceholder = day.isPlaceholder;
+                        const isKadirGecesi = ramadanDay === 27;
                         
                         return (
                           <tr 
                             key={index} 
-                            className={`border-b transition-colors ${isToday ? "bg-primary/10" : "hover:bg-muted/50"} ${isPlaceholder ? "opacity-50" : ""}`}
+                            className={`border-b transition-colors ${
+                              isKadirGecesi 
+                                ? "bg-purple-900/20" 
+                                : isToday 
+                                  ? "bg-primary/10" 
+                                  : "hover:bg-muted/50"
+                            } ${isPlaceholder ? "opacity-50" : ""}`}
                             data-testid={`schedule-row-${index}`}
                           >
-                            {ramadanInfo.isRamadan ? (
-                              <td className="text-center py-3 px-2 font-bold text-primary">
+                            {periodInfo.isRamadan ? (
+                              <td className={`text-center py-3 px-2 font-bold ${isKadirGecesi ? "text-purple-400" : "text-primary"}`}>
                                 {ramadanDay}
+                                {isKadirGecesi && (
+                                  <Star className="w-3 h-3 inline ml-1 text-purple-400" />
+                                )}
                               </td>
                             ) : null}
                             <td className="py-3 px-2 font-medium whitespace-nowrap">
