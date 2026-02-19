@@ -802,21 +802,14 @@ function App() {
                         const todayStr = `${today.getDate().toString().padStart(2, "0")}.${(today.getMonth() + 1).toString().padStart(2, "0")}.${today.getFullYear()}`;
                         const isToday = day.MiladiTarihKisa === todayStr;
                         
-                        // Calculate Ramadan day number from date
-                        let ramadanDay = index + 1;
-                        if (ramadanInfo.isRamadan) {
-                          const parts = day.MiladiTarihKisa.split(".");
-                          if (parts.length === 3) {
-                            const date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-                            const dayNum = getRamadanDayNumber(date);
-                            if (dayNum) ramadanDay = dayNum;
-                          }
-                        }
+                        // Use ramadanDay from data or calculate
+                        const ramadanDay = day.ramadanDay || index + 1;
+                        const isPlaceholder = day.isPlaceholder;
                         
                         return (
                           <tr 
                             key={index} 
-                            className={`border-b transition-colors ${isToday ? "bg-primary/10" : "hover:bg-muted/50"}`}
+                            className={`border-b transition-colors ${isToday ? "bg-primary/10" : "hover:bg-muted/50"} ${isPlaceholder ? "opacity-50" : ""}`}
                             data-testid={`schedule-row-${index}`}
                           >
                             {ramadanInfo.isRamadan ? (
