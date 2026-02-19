@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import "@/App.css";
-import { Sun, Moon, Sunrise, CloudSun, Sunset, Calendar, MapPin, ChevronDown, X } from "lucide-react";
+import { Sun, Moon, Sunrise, CloudSun, Sunset, Calendar, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,86 +9,67 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 
-// Turkish cities with coordinates
+// ============================================
+// DIYANET API CONFIGURATION (emushaf.net)
+// ============================================
+const API_BASE = "https://ezanvakti.emushaf.net";
+
+// Turkish cities with Diyanet API IDs (şehir ID + ilçe ID for merkez)
 const TURKISH_CITIES = [
-  { name: "Adana", lat: 37.0, lng: 35.3213 },
-  { name: "Ankara", lat: 39.9334, lng: 32.8597 },
-  { name: "Antalya", lat: 36.8969, lng: 30.7133 },
-  { name: "Bursa", lat: 40.1885, lng: 29.061 },
-  { name: "Diyarbakır", lat: 37.9144, lng: 40.2306 },
-  { name: "Erzincan", lat: 39.7500, lng: 39.5000 },
-  { name: "Erzurum", lat: 39.9043, lng: 41.2679 },
-  { name: "Eskişehir", lat: 39.7767, lng: 30.5206 },
-  { name: "Gaziantep", lat: 37.0662, lng: 37.3833 },
-  { name: "Istanbul", lat: 41.0082, lng: 28.9784 },
-  { name: "İzmir", lat: 38.4237, lng: 27.1428 },
-  { name: "Kayseri", lat: 38.7312, lng: 35.4787 },
-  { name: "Konya", lat: 37.8746, lng: 32.4932 },
-  { name: "Malatya", lat: 38.3552, lng: 38.3095 },
-  { name: "Mersin", lat: 36.8121, lng: 34.6415 },
-  { name: "Samsun", lat: 41.2867, lng: 36.33 },
-  { name: "Trabzon", lat: 41.0027, lng: 39.7168 },
-  { name: "Van", lat: 38.4891, lng: 43.4089 },
+  { name: "Adana", displayName: "ADANA", sehirId: "500", ilceId: "9146" },
+  { name: "Ankara", displayName: "ANKARA", sehirId: "506", ilceId: "9206" },
+  { name: "Antalya", displayName: "ANTALYA", sehirId: "507", ilceId: "9225" },
+  { name: "Bursa", displayName: "BURSA", sehirId: "520", ilceId: "9335" },
+  { name: "Diyarbakır", displayName: "DİYARBAKIR", sehirId: "525", ilceId: "9381" },
+  { name: "Erzincan", displayName: "ERZİNCAN", sehirId: "529", ilceId: "9440" },
+  { name: "Erzurum", displayName: "ERZURUM", sehirId: "530", ilceId: "9450" },
+  { name: "Eskişehir", displayName: "ESKİŞEHİR", sehirId: "531", ilceId: "9470" },
+  { name: "Gaziantep", displayName: "GAZİANTEP", sehirId: "532", ilceId: "9479" },
+  { name: "İstanbul", displayName: "İSTANBUL", sehirId: "539", ilceId: "9541" },
+  { name: "İzmir", displayName: "İZMİR", sehirId: "540", ilceId: "9560" },
+  { name: "Kayseri", displayName: "KAYSERİ", sehirId: "546", ilceId: "9620" },
+  { name: "Konya", displayName: "KONYA", sehirId: "552", ilceId: "9676" },
+  { name: "Malatya", displayName: "MALATYA", sehirId: "554", ilceId: "9703" },
+  { name: "Mersin", displayName: "MERSİN", sehirId: "557", ilceId: "9737" },
+  { name: "Samsun", displayName: "SAMSUN", sehirId: "566", ilceId: "9819" },
+  { name: "Trabzon", displayName: "TRABZON", sehirId: "574", ilceId: "9901" },
+  { name: "Van", displayName: "VAN", sehirId: "577", ilceId: "9929" },
 ];
 
-// Prayer names in Turkish
-const PRAYER_NAMES = {
-  Fajr: "İmsak",
-  Sunrise: "Güneş",
-  Dhuhr: "Öğle",
-  Asr: "İkindi",
-  Maghrib: "Akşam",
-  Isha: "Yatsı"
-};
-
-// Prayer icons
+// Prayer icons mapping
 const PRAYER_ICONS = {
-  Fajr: Sunrise,
-  Sunrise: Sun,
-  Dhuhr: Sun,
-  Asr: CloudSun,
-  Maghrib: Sunset,
-  Isha: Moon
+  Imsak: Sunrise,
+  Gunes: Sun,
+  Ogle: Sun,
+  Ikindi: CloudSun,
+  Aksam: Sunset,
+  Yatsi: Moon
 };
 
-// Get Ramadan dates (approximate - based on Islamic calendar)
-function getRamadanInfo() {
-  // Ramadan 2025: ~Feb 28 - Mar 29
-  // Ramadan 2026: ~Feb 17 - Mar 18
-  const now = new Date();
-  const year = now.getFullYear();
-  
-  // Approximate Ramadan dates for 2025-2026
-  const ramadanDates = {
-    2025: { start: new Date(2025, 1, 28), end: new Date(2025, 2, 29) },
-    2026: { start: new Date(2026, 1, 17), end: new Date(2026, 2, 18) }
-  };
-  
-  const currentRamadan = ramadanDates[year];
-  if (!currentRamadan) return { isRamadan: false };
-  
-  const isRamadan = now >= currentRamadan.start && now <= currentRamadan.end;
-  
-  if (isRamadan) {
-    const dayOfRamadan = Math.ceil((now - currentRamadan.start) / (1000 * 60 * 60 * 24));
-    const totalDays = Math.ceil((currentRamadan.end - currentRamadan.start) / (1000 * 60 * 60 * 24));
-    const progress = (dayOfRamadan / totalDays) * 100;
-    
-    return { isRamadan: true, dayOfRamadan, totalDays, progress };
-  }
-  
-  return { isRamadan: false };
-}
+// Prayer display names in Turkish
+const PRAYER_NAMES = {
+  Imsak: "İmsak",
+  Gunes: "Güneş",
+  Ogle: "Öğle",
+  Ikindi: "İkindi",
+  Aksam: "Akşam",
+  Yatsi: "Yatsı"
+};
 
-// Parse time string to Date object
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
+
+// Parse time string (HH:MM) to Date object for today
 function parseTimeToDate(timeStr) {
+  if (!timeStr) return null;
   const [hours, minutes] = timeStr.split(":").map(Number);
   const date = new Date();
   date.setHours(hours, minutes, 0, 0);
   return date;
 }
 
-// Format countdown
+// Format countdown from milliseconds
 function formatCountdown(ms) {
   if (ms <= 0) return { hours: "00", minutes: "00", seconds: "00", total: 0 };
   
@@ -105,42 +86,107 @@ function formatCountdown(ms) {
   };
 }
 
-// Main App Component
+// Extract Ramadan info from Hijri date in API response
+function getRamadanInfoFromData(monthlyData) {
+  if (!monthlyData || monthlyData.length === 0) {
+    return { isRamadan: false, ramadanDays: [] };
+  }
+  
+  // Filter for Ramadan days (Ramazan in Turkish Hijri calendar)
+  const ramadanDays = monthlyData.filter(day => {
+    const hijriDate = day.HicriTarihUzun || "";
+    return hijriDate.includes("Ramazan");
+  });
+  
+  if (ramadanDays.length === 0) {
+    return { isRamadan: false, ramadanDays: [] };
+  }
+  
+  // Find today's date in the data
+  const today = new Date();
+  const todayStr = `${today.getDate().toString().padStart(2, "0")}.${(today.getMonth() + 1).toString().padStart(2, "0")}.${today.getFullYear()}`;
+  
+  const todayData = monthlyData.find(day => day.MiladiTarihKisa === todayStr);
+  
+  if (todayData) {
+    const hijriDate = todayData.HicriTarihUzun || "";
+    const isRamadan = hijriDate.includes("Ramazan");
+    
+    if (isRamadan) {
+      // Extract day number from Hijri date (e.g., "5 Ramazan 1447" -> 5)
+      const match = hijriDate.match(/^(\d+)\s+Ramazan/);
+      const dayOfRamadan = match ? parseInt(match[1]) : 1;
+      
+      // Calculate total Ramadan days from data
+      const totalDays = ramadanDays.length;
+      const progress = (dayOfRamadan / Math.max(totalDays, 29)) * 100;
+      
+      return { 
+        isRamadan: true, 
+        dayOfRamadan, 
+        totalDays: Math.max(totalDays, 29),
+        progress,
+        ramadanDays 
+      };
+    }
+  }
+  
+  return { isRamadan: false, ramadanDays };
+}
+
+// ============================================
+// MAIN APP COMPONENT
+// ============================================
 function App() {
-  const [theme, setTheme] = useState("light");
+  // State
+  const [theme, setTheme] = useState("dark"); // Default to dark
   const [city, setCity] = useState(null);
   const [prayerTimes, setPrayerTimes] = useState(null);
-  const [monthlyTimes, setMonthlyTimes] = useState([]);
+  const [monthlyData, setMonthlyData] = useState([]);
+  const [ramadanInfo, setRamadanInfo] = useState({ isRamadan: false });
   const [countdown, setCountdown] = useState({ hours: "00", minutes: "00", seconds: "00", total: 0 });
   const [loading, setLoading] = useState(true);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [iftarPassed, setIftarPassed] = useState(false);
   
-  const ramadanInfo = useMemo(() => getRamadanInfo(), []);
+  // Refs for interval management (prevents memory leaks)
+  const countdownIntervalRef = useRef(null);
+  const dateCheckIntervalRef = useRef(null);
 
-  // Initialize theme
+  // ============================================
+  // THEME INITIALIZATION - Dark mode by default
+  // ============================================
   useEffect(() => {
     const savedTheme = localStorage.getItem("prayer-theme");
+    // Only use saved theme if it exists, otherwise default to dark
     if (savedTheme) {
       setTheme(savedTheme);
-    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+    } else {
+      // Default to dark mode (ignore system preference)
       setTheme("dark");
+      localStorage.setItem("prayer-theme", "dark");
     }
   }, []);
 
-  // Apply theme
+  // Apply theme to document
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
+    document.documentElement.classList.remove("light", "dark");
+    document.documentElement.classList.add(theme);
     localStorage.setItem("prayer-theme", theme);
   }, [theme]);
 
-  // Initialize city
+  // ============================================
+  // CITY INITIALIZATION
+  // ============================================
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const urlCity = urlParams.get("city");
     
     if (urlCity) {
-      const found = TURKISH_CITIES.find(c => c.name.toLowerCase() === urlCity.toLowerCase());
+      const found = TURKISH_CITIES.find(c => 
+        c.name.toLowerCase() === urlCity.toLowerCase() ||
+        c.displayName.toLowerCase() === urlCity.toLowerCase()
+      );
       if (found) {
         setCity(found);
         localStorage.setItem("prayer-city", JSON.stringify(found));
@@ -151,140 +197,195 @@ function App() {
     const savedCity = localStorage.getItem("prayer-city");
     if (savedCity) {
       try {
-        setCity(JSON.parse(savedCity));
-        return;
+        const parsed = JSON.parse(savedCity);
+        // Validate the saved city has required fields
+        if (parsed.ilceId) {
+          setCity(parsed);
+          return;
+        }
       } catch (e) {
         console.error("Failed to parse saved city");
       }
     }
     
-    // Try geolocation
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          // Find nearest city
-          let nearest = TURKISH_CITIES[5]; // Default Erzincan
-          let minDist = Infinity;
-          
-          TURKISH_CITIES.forEach(c => {
-            const dist = Math.sqrt(Math.pow(c.lat - latitude, 2) + Math.pow(c.lng - longitude, 2));
-            if (dist < minDist) {
-              minDist = dist;
-              nearest = c;
-            }
-          });
-          
-          setCity(nearest);
-          localStorage.setItem("prayer-city", JSON.stringify(nearest));
-          toast.success(`Konum algılandı: ${nearest.name}`);
-        },
-        () => {
-          // Geolocation denied or failed - use default
-          const defaultCity = TURKISH_CITIES.find(c => c.name === "Erzincan") || TURKISH_CITIES[0];
-          setCity(defaultCity);
-          localStorage.setItem("prayer-city", JSON.stringify(defaultCity));
-        }
-      );
-    } else {
-      // No geolocation - use default
-      const defaultCity = TURKISH_CITIES.find(c => c.name === "Erzincan") || TURKISH_CITIES[0];
-      setCity(defaultCity);
-    }
+    // Default to Erzincan
+    const defaultCity = TURKISH_CITIES.find(c => c.name === "Erzincan") || TURKISH_CITIES[0];
+    setCity(defaultCity);
+    localStorage.setItem("prayer-city", JSON.stringify(defaultCity));
   }, []);
 
-  // Fetch prayer times
-  const fetchPrayerTimes = useCallback(async () => {
-    if (!city) return;
+  // ============================================
+  // FETCH PRAYER TIMES FROM DIYANET API
+  // ============================================
+  const fetchPrayerTimes = useCallback(async (selectedCity) => {
+    if (!selectedCity || !selectedCity.ilceId) return;
     
     setLoading(true);
     
     try {
-      // Check cache first
-      const cacheKey = `prayer-times-${city.name}-${new Date().toDateString()}`;
+      const today = new Date();
+      const cacheKey = `diyanet-times-${selectedCity.ilceId}-${today.toDateString()}`;
       const cached = localStorage.getItem(cacheKey);
       
+      // Try cache first
       if (cached) {
-        const data = JSON.parse(cached);
-        setPrayerTimes(data.timings);
-        setLoading(false);
-        return;
+        try {
+          const data = JSON.parse(cached);
+          processApiData(data, today);
+          setLoading(false);
+          return;
+        } catch (e) {
+          localStorage.removeItem(cacheKey);
+        }
       }
       
-      const today = new Date();
-      const response = await fetch(
-        `https://api.aladhan.com/v1/timings/${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}?latitude=${city.lat}&longitude=${city.lng}&method=13`
-      );
+      // Fetch from Diyanet API
+      const response = await fetch(`${API_BASE}/vakitler/${selectedCity.ilceId}`);
       
-      if (!response.ok) throw new Error("API error");
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
       
       const data = await response.json();
-      const timings = data.data.timings;
       
-      setPrayerTimes(timings);
-      localStorage.setItem(cacheKey, JSON.stringify({ timings }));
+      if (!data || data.length === 0) {
+        throw new Error("No data received from API");
+      }
+      
+      // Cache the data
+      localStorage.setItem(cacheKey, JSON.stringify(data));
+      
+      processApiData(data, today);
+      
     } catch (error) {
       console.error("Failed to fetch prayer times:", error);
       toast.error("Namaz vakitleri alınamadı. Lütfen tekrar deneyin.");
+      
+      // Try to use cached data as fallback
+      const fallbackKey = `diyanet-times-${selectedCity.ilceId}`;
+      const fallback = localStorage.getItem(fallbackKey);
+      if (fallback) {
+        try {
+          const data = JSON.parse(fallback);
+          processApiData(data, new Date());
+          toast.info("Önbellek verileri kullanılıyor.");
+        } catch (e) {
+          // No fallback available
+        }
+      }
     } finally {
       setLoading(false);
     }
-  }, [city]);
+  }, []);
 
-  // Fetch monthly times
-  const fetchMonthlyTimes = useCallback(async () => {
-    if (!city) return;
+  // Process API data and update state
+  const processApiData = useCallback((data, today) => {
+    setMonthlyData(data);
     
-    try {
-      const cacheKey = `prayer-monthly-${city.name}-${new Date().getMonth()}-${new Date().getFullYear()}`;
-      const cached = localStorage.getItem(cacheKey);
-      
-      if (cached) {
-        setMonthlyTimes(JSON.parse(cached));
-        return;
+    // Find today's prayer times
+    const todayStr = `${today.getDate().toString().padStart(2, "0")}.${(today.getMonth() + 1).toString().padStart(2, "0")}.${today.getFullYear()}`;
+    
+    const todayData = data.find(day => day.MiladiTarihKisa === todayStr);
+    
+    if (todayData) {
+      setPrayerTimes({
+        Imsak: todayData.Imsak,
+        Gunes: todayData.Gunes,
+        Ogle: todayData.Ogle,
+        Ikindi: todayData.Ikindi,
+        Aksam: todayData.Aksam,
+        Yatsi: todayData.Yatsi,
+        raw: todayData
+      });
+    } else if (data.length > 0) {
+      // Fallback to first available day
+      const firstDay = data[0];
+      setPrayerTimes({
+        Imsak: firstDay.Imsak,
+        Gunes: firstDay.Gunes,
+        Ogle: firstDay.Ogle,
+        Ikindi: firstDay.Ikindi,
+        Aksam: firstDay.Aksam,
+        Yatsi: firstDay.Yatsi,
+        raw: firstDay
+      });
+    }
+    
+    // Calculate Ramadan info from Hijri dates in data
+    const ramadan = getRamadanInfoFromData(data);
+    setRamadanInfo(ramadan);
+  }, []);
+
+  // Fetch times when city changes
+  useEffect(() => {
+    if (city) {
+      // Clear any existing intervals when city changes
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
       }
       
-      const today = new Date();
-      const response = await fetch(
-        `https://api.aladhan.com/v1/calendar/${today.getFullYear()}/${today.getMonth() + 1}?latitude=${city.lat}&longitude=${city.lng}&method=13`
-      );
+      // Reset states
+      setPrayerTimes(null);
+      setCountdown({ hours: "00", minutes: "00", seconds: "00", total: 0 });
+      setIftarPassed(false);
       
-      if (!response.ok) throw new Error("API error");
-      
-      const data = await response.json();
-      setMonthlyTimes(data.data);
-      localStorage.setItem(cacheKey, JSON.stringify(data.data));
-    } catch (error) {
-      console.error("Failed to fetch monthly times:", error);
+      // Fetch new data
+      fetchPrayerTimes(city);
     }
-  }, [city]);
+  }, [city, fetchPrayerTimes]);
 
+  // ============================================
+  // COUNTDOWN TIMER - Single interval management
+  // ============================================
   useEffect(() => {
-    fetchPrayerTimes();
-  }, [fetchPrayerTimes]);
-
-  // Countdown timer
-  useEffect(() => {
-    if (!prayerTimes) return;
+    // Clear any existing countdown interval
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    
+    if (!prayerTimes || !prayerTimes.Aksam) return;
     
     const updateCountdown = () => {
       const now = new Date();
-      const maghribTime = parseTimeToDate(prayerTimes.Maghrib);
-      const ishaTime = parseTimeToDate(prayerTimes.Isha);
+      const aksamTime = parseTimeToDate(prayerTimes.Aksam);
+      const yatsiTime = parseTimeToDate(prayerTimes.Yatsi);
       
-      let diff = maghribTime - now;
+      if (!aksamTime || !yatsiTime) return;
       
-      if (diff <= 0 && now < ishaTime) {
-        // Iftar time has passed but before Isha
+      let diff = aksamTime - now;
+      
+      if (diff <= 0 && now < yatsiTime) {
+        // Iftar time has passed but before Yatsı
         setIftarPassed(true);
         setCountdown({ hours: "00", minutes: "00", seconds: "00", total: 0 });
-      } else if (now >= ishaTime) {
-        // After Isha - countdown to next day's Iftar
+      } else if (now >= yatsiTime) {
+        // After Yatsı - countdown to next day's Iftar
         setIftarPassed(false);
+        
+        // Find tomorrow's Aksam time from monthly data
         const tomorrow = new Date(now);
         tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(maghribTime.getHours(), maghribTime.getMinutes(), 0, 0);
-        diff = tomorrow - now;
+        const tomorrowStr = `${tomorrow.getDate().toString().padStart(2, "0")}.${(tomorrow.getMonth() + 1).toString().padStart(2, "0")}.${tomorrow.getFullYear()}`;
+        
+        const tomorrowData = monthlyData.find(day => day.MiladiTarihKisa === tomorrowStr);
+        
+        if (tomorrowData) {
+          const tomorrowAksam = parseTimeToDate(tomorrowData.Aksam);
+          if (tomorrowAksam) {
+            tomorrowAksam.setDate(tomorrow.getDate());
+            tomorrowAksam.setMonth(tomorrow.getMonth());
+            tomorrowAksam.setFullYear(tomorrow.getFullYear());
+            diff = tomorrowAksam - now;
+          }
+        } else {
+          // Fallback: use same time for tomorrow
+          const nextAksam = new Date(aksamTime);
+          nextAksam.setDate(nextAksam.getDate() + 1);
+          diff = nextAksam - now;
+        }
+        
         setCountdown(formatCountdown(diff));
       } else {
         // Before Iftar
@@ -293,41 +394,102 @@ function App() {
       }
     };
     
+    // Initial update
     updateCountdown();
-    const interval = setInterval(updateCountdown, 1000);
     
-    return () => clearInterval(interval);
-  }, [prayerTimes]);
+    // Set up interval
+    countdownIntervalRef.current = setInterval(updateCountdown, 1000);
+    
+    // Cleanup
+    return () => {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+    };
+  }, [prayerTimes, monthlyData]);
 
-  // Check for date change
+  // ============================================
+  // DATE CHANGE CHECK
+  // ============================================
   useEffect(() => {
+    if (dateCheckIntervalRef.current) {
+      clearInterval(dateCheckIntervalRef.current);
+    }
+    
+    let lastDate = new Date().toDateString();
+    
     const checkDateChange = () => {
-      const now = new Date();
-      if (now.getHours() === 0 && now.getMinutes() === 0) {
-        fetchPrayerTimes();
+      const currentDate = new Date().toDateString();
+      if (currentDate !== lastDate) {
+        lastDate = currentDate;
+        if (city) {
+          fetchPrayerTimes(city);
+        }
       }
     };
     
-    const interval = setInterval(checkDateChange, 60000);
-    return () => clearInterval(interval);
-  }, [fetchPrayerTimes]);
+    dateCheckIntervalRef.current = setInterval(checkDateChange, 60000);
+    
+    return () => {
+      if (dateCheckIntervalRef.current) {
+        clearInterval(dateCheckIntervalRef.current);
+      }
+    };
+  }, [city, fetchPrayerTimes]);
 
-  const handleCityChange = (cityName) => {
+  // ============================================
+  // EVENT HANDLERS
+  // ============================================
+  const handleCityChange = useCallback((cityName) => {
     const newCity = TURKISH_CITIES.find(c => c.name === cityName);
     if (newCity) {
+      // Clear stale data
+      setPrayerTimes(null);
+      setMonthlyData([]);
+      
+      // Update city
       setCity(newCity);
       localStorage.setItem("prayer-city", JSON.stringify(newCity));
     }
-  };
+  }, []);
 
-  const toggleTheme = () => {
-    setTheme(prev => prev === "light" ? "dark" : "light");
-  };
+  const toggleTheme = useCallback(() => {
+    setTheme(prev => {
+      const newTheme = prev === "light" ? "dark" : "light";
+      localStorage.setItem("prayer-theme", newTheme);
+      return newTheme;
+    });
+  }, []);
 
-  const prayerOrder = ["Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha"];
+  // ============================================
+  // GET RAMADAN SCHEDULE FOR MODAL
+  // ============================================
+  const getRamadanSchedule = useCallback(() => {
+    if (!monthlyData || monthlyData.length === 0) return [];
+    
+    // Filter only Ramadan days from data
+    const ramadanDays = monthlyData.filter(day => {
+      const hijriDate = day.HicriTarihUzun || "";
+      return hijriDate.includes("Ramazan");
+    });
+    
+    // If no Ramadan days in current month, return all monthly data
+    if (ramadanDays.length === 0) {
+      return monthlyData;
+    }
+    
+    return ramadanDays;
+  }, [monthlyData]);
 
+  // Prayer order for display
+  const prayerOrder = ["Imsak", "Gunes", "Ogle", "Ikindi", "Aksam", "Yatsi"];
+
+  // ============================================
+  // RENDER
+  // ============================================
   return (
-    <div className="min-h-screen bg-background transition-colors duration-300" data-testid="prayer-app">
+    <div className="min-h-screen bg-background transition-colors duration-500" data-testid="prayer-app">
       <Toaster position="top-center" richColors />
       
       {/* Ramadan Progress Bar */}
@@ -357,7 +519,14 @@ function App() {
               </SelectTrigger>
               <SelectContent>
                 {TURKISH_CITIES.map(c => (
-                  <SelectItem key={c.name} value={c.name} data-testid={`city-option-${c.name.toLowerCase()}`}>
+                  <SelectItem 
+                    key={c.name} 
+                    value={c.name} 
+                    data-testid={`city-option-${c.name.toLowerCase().replace(/[İıĞğÜüŞşÖöÇç]/g, char => {
+                      const map = { 'İ': 'i', 'ı': 'i', 'Ğ': 'g', 'ğ': 'g', 'Ü': 'u', 'ü': 'u', 'Ş': 's', 'ş': 's', 'Ö': 'o', 'ö': 'o', 'Ç': 'c', 'ç': 'c' };
+                      return map[char] || char;
+                    })}`}
+                  >
                     {c.name}
                   </SelectItem>
                 ))}
@@ -370,13 +539,13 @@ function App() {
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
-            className="rounded-full hover:bg-secondary transition-colors"
+            className="rounded-full hover:bg-secondary transition-all duration-300"
             data-testid="theme-toggle"
           >
             {theme === "light" ? (
-              <Moon className="w-5 h-5" />
+              <Moon className="w-5 h-5 transition-transform duration-300" />
             ) : (
-              <Sun className="w-5 h-5" />
+              <Sun className="w-5 h-5 transition-transform duration-300" />
             )}
           </Button>
         </header>
@@ -397,7 +566,7 @@ function App() {
                 İftar vakti geldi!
               </h1>
               <p className="text-xl md:text-2xl text-muted-foreground">
-                Afiyet olsun 🌙
+                Afiyet olsun
               </p>
             </div>
           ) : (
@@ -435,7 +604,7 @@ function App() {
                 <div className="text-center">
                   <p className="text-muted-foreground text-sm mb-1">Bugünkü İftar Vakti</p>
                   <p className="text-3xl md:text-4xl font-light text-primary" data-testid="iftar-time">
-                    {prayerTimes.Maghrib}
+                    {prayerTimes.Aksam}
                   </p>
                 </div>
               )}
@@ -449,7 +618,7 @@ function App() {
             <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
               {prayerOrder.map((prayer, index) => {
                 const Icon = PRAYER_ICONS[prayer];
-                const isIftar = prayer === "Maghrib";
+                const isIftar = prayer === "Aksam";
                 
                 return (
                   <div
@@ -476,76 +645,95 @@ function App() {
           </section>
         )}
         
-        {/* 30-Day Schedule Button */}
-        <section className="flex justify-center mb-12 animate-fade-in-up animation-delay-300">
-          <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                className="gap-2 rounded-full px-6 py-5 text-base hover:bg-primary hover:text-primary-foreground transition-all btn-press"
-                onClick={() => fetchMonthlyTimes()}
-                data-testid="schedule-button"
-              >
-                <Calendar className="w-5 h-5" />
-                30 Günlük Takvim
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[80vh] p-0" data-testid="schedule-modal">
-              <DialogHeader className="p-6 pb-0">
-                <DialogTitle className="text-2xl font-light flex items-center gap-2">
-                  <Calendar className="w-6 h-6 text-primary" />
-                  {city?.name} — Aylık Namaz Vakitleri
-                </DialogTitle>
-                <DialogDescription className="sr-only">
-                  {city?.name} için 30 günlük namaz vakitleri tablosu
-                </DialogDescription>
-              </DialogHeader>
-              <ScrollArea className="h-[60vh] px-6 pb-6">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="sticky top-0 bg-background">
-                      <tr className="border-b">
-                        <th className="text-left py-3 px-2 font-medium text-muted-foreground">Tarih</th>
-                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">İmsak</th>
-                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">Güneş</th>
-                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">Öğle</th>
-                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">İkindi</th>
-                        <th className="text-center py-3 px-2 font-medium text-primary font-bold">Akşam</th>
-                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">Yatsı</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {monthlyTimes.map((day, index) => {
-                        const isToday = new Date().getDate() === parseInt(day.date.gregorian.day);
-                        return (
-                          <tr 
-                            key={index} 
-                            className={`border-b transition-colors ${isToday ? "bg-primary/10" : "hover:bg-muted/50"}`}
-                            data-testid={`schedule-row-${index}`}
-                          >
-                            <td className="py-3 px-2 font-medium">
-                              {day.date.gregorian.day} {day.date.gregorian.month.en}
-                            </td>
-                            <td className="text-center py-3 px-2 tabular-nums">{day.timings.Fajr.split(" ")[0]}</td>
-                            <td className="text-center py-3 px-2 tabular-nums">{day.timings.Sunrise.split(" ")[0]}</td>
-                            <td className="text-center py-3 px-2 tabular-nums">{day.timings.Dhuhr.split(" ")[0]}</td>
-                            <td className="text-center py-3 px-2 tabular-nums">{day.timings.Asr.split(" ")[0]}</td>
-                            <td className="text-center py-3 px-2 tabular-nums font-medium text-primary">{day.timings.Maghrib.split(" ")[0]}</td>
-                            <td className="text-center py-3 px-2 tabular-nums">{day.timings.Isha.split(" ")[0]}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </ScrollArea>
-            </DialogContent>
-          </Dialog>
-        </section>
+        {/* Ramadan Schedule Button - Only show if we have Ramadan data or any monthly data */}
+        {monthlyData.length > 0 && (
+          <section className="flex justify-center mb-12 animate-fade-in-up animation-delay-300">
+            <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="gap-2 rounded-full px-6 py-5 text-base hover:bg-primary hover:text-primary-foreground transition-all btn-press"
+                  data-testid="schedule-button"
+                >
+                  <Calendar className="w-5 h-5" />
+                  {ramadanInfo.isRamadan ? "Ramazan İmsakiyesi" : "Aylık Takvim"}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl max-h-[80vh] p-0" data-testid="schedule-modal">
+                <DialogHeader className="p-6 pb-0">
+                  <DialogTitle className="text-2xl font-light flex items-center gap-2">
+                    <Calendar className="w-6 h-6 text-primary" />
+                    {city?.name} — {ramadanInfo.isRamadan ? "Ramazan İmsakiyesi" : "Aylık Namaz Vakitleri"}
+                  </DialogTitle>
+                  <DialogDescription className="sr-only">
+                    {city?.name} için {ramadanInfo.isRamadan ? "Ramazan imsakiyesi" : "aylık namaz vakitleri"} tablosu
+                  </DialogDescription>
+                </DialogHeader>
+                <ScrollArea className="h-[60vh] px-6 pb-6">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="sticky top-0 bg-background z-10">
+                        <tr className="border-b">
+                          {ramadanInfo.isRamadan && (
+                            <th className="text-center py-3 px-2 font-medium text-primary">Gün</th>
+                          )}
+                          <th className="text-left py-3 px-2 font-medium text-muted-foreground">Tarih</th>
+                          <th className="text-center py-3 px-2 font-medium text-muted-foreground">İmsak</th>
+                          <th className="text-center py-3 px-2 font-medium text-muted-foreground">Güneş</th>
+                          <th className="text-center py-3 px-2 font-medium text-muted-foreground">Öğle</th>
+                          <th className="text-center py-3 px-2 font-medium text-muted-foreground">İkindi</th>
+                          <th className="text-center py-3 px-2 font-medium text-primary font-bold">Akşam</th>
+                          <th className="text-center py-3 px-2 font-medium text-muted-foreground">Yatsı</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {getRamadanSchedule().map((day, index) => {
+                          const today = new Date();
+                          const todayStr = `${today.getDate().toString().padStart(2, "0")}.${(today.getMonth() + 1).toString().padStart(2, "0")}.${today.getFullYear()}`;
+                          const isToday = day.MiladiTarihKisa === todayStr;
+                          
+                          // Extract Ramadan day number from Hijri date
+                          let ramadanDay = null;
+                          if (ramadanInfo.isRamadan && day.HicriTarihUzun) {
+                            const match = day.HicriTarihUzun.match(/^(\d+)\s+Ramazan/);
+                            ramadanDay = match ? parseInt(match[1]) : index + 1;
+                          }
+                          
+                          return (
+                            <tr 
+                              key={index} 
+                              className={`border-b transition-colors ${isToday ? "bg-primary/10" : "hover:bg-muted/50"}`}
+                              data-testid={`schedule-row-${index}`}
+                            >
+                              {ramadanInfo.isRamadan && (
+                                <td className="text-center py-3 px-2 font-bold text-primary">
+                                  {ramadanDay || index + 1}
+                                </td>
+                              )}
+                              <td className="py-3 px-2 font-medium whitespace-nowrap">
+                                {day.MiladiTarihKisa}
+                              </td>
+                              <td className="text-center py-3 px-2 tabular-nums">{day.Imsak}</td>
+                              <td className="text-center py-3 px-2 tabular-nums">{day.Gunes}</td>
+                              <td className="text-center py-3 px-2 tabular-nums">{day.Ogle}</td>
+                              <td className="text-center py-3 px-2 tabular-nums">{day.Ikindi}</td>
+                              <td className="text-center py-3 px-2 tabular-nums font-medium text-primary">{day.Aksam}</td>
+                              <td className="text-center py-3 px-2 tabular-nums">{day.Yatsi}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </ScrollArea>
+              </DialogContent>
+            </Dialog>
+          </section>
+        )}
         
         {/* Footer */}
         <footer className="text-center text-sm text-muted-foreground animate-fade-in-up animation-delay-400">
-          <p>Namaz vakitleri Aladhan API'den alınmaktadır.</p>
+          <p>Namaz vakitleri T.C. Diyanet İşleri Başkanlığı verilerine dayanmaktadır.</p>
         </footer>
       </div>
     </div>
