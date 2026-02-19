@@ -1,0 +1,148 @@
+{
+  "meta": {
+    "project_name": "Iftar Vakti - Minimal Prayer App",
+    "version": "1.0.0",
+    "designer": "E1",
+    "theme_strategy": "Digital Sanctuary",
+    "target_audience": "Turkish Muslims",
+    "tech_stack": "React, Tailwind CSS, Shadcn/UI, Lucide React"
+  },
+  "typography": {
+    "font_family": {
+      "heading": "\"Outfit\", sans-serif",
+      "body": "\"DM Sans\", sans-serif",
+      "mono": "\"JetBrains Mono\", monospace"
+    },
+    "google_fonts_url": "https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,100..1000&family=Outfit:wght@100..900&display=swap",
+    "scaling": {
+      "h1": "text-5xl md:text-7xl font-light tracking-tight",
+      "h2": "text-3xl md:text-4xl font-light",
+      "h3": "text-2xl font-medium",
+      "body": "text-base md:text-lg leading-relaxed",
+      "label": "text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground",
+      "countdown": "text-6xl md:text-9xl font-extralight tracking-tighter tabular-nums"
+    }
+  },
+  "colors": {
+    "palette_name": "Soft Mint Sanctuary",
+    "css_variables": {
+      "root": {
+        "background": "160 60% 98%",
+        "foreground": "165 40% 15%",
+        "card": "0 0% 100%",
+        "card_foreground": "165 40% 15%",
+        "popover": "0 0% 100%",
+        "popover_foreground": "165 40% 15%",
+        "primary": "170 70% 35%",
+        "primary_foreground": "0 0% 100%",
+        "secondary": "165 30% 94%",
+        "secondary_foreground": "170 70% 35%",
+        "muted": "165 20% 96%",
+        "muted_foreground": "165 10% 40%",
+        "accent": "165 30% 94%",
+        "accent_foreground": "170 70% 35%",
+        "destructive": "0 84.2% 60.2%",
+        "destructive_foreground": "0 0% 98%",
+        "border": "165 20% 90%",
+        "input": "165 20% 90%",
+        "ring": "170 70% 35%",
+        "radius": "0.75rem"
+      },
+      "dark": {
+        "background": "165 50% 5%",
+        "foreground": "160 30% 96%",
+        "card": "165 40% 8%",
+        "card_foreground": "160 30% 96%",
+        "popover": "165 40% 8%",
+        "popover_foreground": "160 30% 96%",
+        "primary": "165 60% 45%",
+        "primary_foreground": "165 50% 5%",
+        "secondary": "165 30% 15%",
+        "secondary_foreground": "160 30% 96%",
+        "muted": "165 30% 15%",
+        "muted_foreground": "165 10% 60%",
+        "accent": "165 30% 15%",
+        "accent_foreground": "160 30% 96%",
+        "destructive": "0 62.8% 30.6%",
+        "destructive_foreground": "0 0% 98%",
+        "border": "165 20% 18%",
+        "input": "165 20% 18%",
+        "ring": "165 60% 45%"
+      }
+    }
+  },
+  "layout": {
+    "grid_system": {
+      "prayer_grid": "grid grid-cols-2 md:grid-cols-6 gap-4"
+    },
+    "spacing": {
+      "container_padding": "p-6 md:p-12",
+      "section_gap": "gap-8 md:gap-16"
+    }
+  },
+  "components": {
+    "hero_countdown": {
+      "description": "Massive central timer. Minimalist. No boxes.",
+      "styles": "flex flex-col items-center justify-center min-h-[40vh] md:min-h-[50vh]",
+      "animation": "animate-in fade-in zoom-in duration-1000"
+    },
+    "prayer_card": {
+      "description": "Clean cards for each prayer time. Highlight the current/next one.",
+      "base_style": "flex flex-col items-center justify-center p-6 rounded-2xl bg-card border border-border/50 transition-all duration-300 hover:border-primary/50 hover:shadow-lg",
+      "active_style": "ring-2 ring-primary bg-primary/5 border-primary shadow-[0_0_20px_rgba(20,184,166,0.2)]",
+      "text_style": "text-center"
+    },
+    "progress_bar": {
+      "description": "Slim, top-aligned or subtle background bar indicating Ramadan progress.",
+      "style": "h-1 w-full bg-secondary overflow-hidden",
+      "indicator": "h-full bg-primary transition-all duration-1000 ease-out"
+    },
+    "city_selector": {
+      "description": "Minimal dropdown using Shadcn Select. Transparent background.",
+      "trigger_style": "bg-transparent border-none text-xl md:text-2xl font-light hover:bg-transparent hover:text-primary focus:ring-0 focus:ring-offset-0 px-0 shadow-none gap-2"
+    },
+    "theme_toggle": {
+      "description": "Simple icon toggle (Sun/Moon).",
+      "style": "rounded-full p-2 hover:bg-secondary transition-colors"
+    }
+  },
+  "assets": {
+    "icons": {
+      "library": "lucide-react",
+      "style": "stroke-width: 1.5px; opacity: 0.8;",
+      "mapping": {
+        "Imsak": "Sunrise",
+        "Gunes": "Sun",
+        "Ogle": "SunMedium",
+        "Ikindi": "CloudSun",
+        "Aksam": "Sunset",
+        "Yatsi": "Moon"
+      }
+    },
+    "images": {
+      "background_pattern": "No images. Use subtle CSS radial gradients for 'Glow' effects."
+    }
+  },
+  "universal_guidelines": {
+    "spacing_rule": "Use 2x padding than normal. White space is luxury.",
+    "border_radius": "Use 'rounded-3xl' for main containers, 'rounded-2xl' for cards.",
+    "interaction": "Add 'active:scale-95' to all buttons. Add 'hover:text-primary' to interactive text.",
+    "accessibility": "Ensure all text meets WCAG AA. Use 'text-foreground' on 'bg-background'.",
+    "language": "All text MUST be in Turkish. Default city: Erzincan.",
+    "pwa": "Ensure viewport meta tag prevents zooming on inputs. Add manifest link.",
+    "react_structure": "Use functional components with hooks. Keep imports clean.",
+    "animation": "Use 'tailwindcss-animate' utilities (animate-in, fade-in, slide-in-from-bottom) for entrance effects.",
+    "state_management": "Use React Context or simple useState for Prayer Times data to avoid prop drilling."
+  },
+  "instructions_to_main_agent": {
+    "step_1": "Update /app/frontend/src/index.css with the provided CSS variables (HSL values).",
+    "step_2": "Install 'lucide-react' and 'date-fns' (if needed) for time calculation.",
+    "step_3": "Create a 'PrayerTimesContext' to manage state.",
+    "step_4": "Build the 'CitySelector' component using Shadcn Select.",
+    "step_5": "Build the 'Countdown' component with tabular-nums.",
+    "step_6": "Construct the main layout: Header (City + Theme), Hero (Countdown), Grid (Prayer Times), Footer (Info).",
+    "step_7": "Implement Geolocation and LocalStorage for city preference.",
+    "step_8": "Ensure PWA manifest is created in /app/frontend/public/manifest.json.",
+    "important_note": "Do not use 'Inter'. Use 'Outfit' for headings. Use Turkish names for prayers: İmsak, Güneş, Öğle, İkindi, Akşam, Yatsı."
+  }
+}
