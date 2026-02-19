@@ -4,83 +4,60 @@
 Build a modern, minimal, high-performance single-page web application that displays daily prayer times with primary focus on Iftar time and a live countdown. Turkish language interface.
 
 ## User Choices
-- **API**: Diyanet İşleri Başkanlığı (emushaf.net) - Official Turkish Religious Affairs data
-- **Theme**: Light mint green (soft, calm, modern) - Dark mode default
-- **Features**: Minimal - no prayer sounds, no Qibla compass
-- **Icons**: Placeholder PWA icons (mosque/crescent design)
+- **API**: Diyanet İşleri Başkanlığı (emushaf.net)
+- **Theme**: Light mint green - Dark mode default
 - **Language**: Turkish only
 - **Default City**: Erzincan, Turkey
+- **Developer Credit**: Seyrani Kenger
 
 ## Architecture
 - **Frontend**: React + Tailwind CSS + Shadcn/UI
 - **API**: Diyanet Prayer Times via ezanvakti.emushaf.net
-- **PWA**: Service Worker + manifest.json with offline caching
-- **Storage**: LocalStorage for preferences (city, theme)
-
-## User Personas
-1. **Primary**: Turkish Muslims seeking accurate prayer/iftar times
-2. **Secondary**: Ramadan observers needing countdown features
-
-## Core Requirements (Static)
-- [x] Live Iftar countdown (hours:minutes:seconds)
-- [x] 6 prayer times grid (İmsak, Güneş, Öğle, İkindi, Akşam, Yatsı)
-- [x] City selection dropdown (18 Turkish cities with Diyanet IDs)
-- [x] Dark/Light theme toggle (dark default)
-- [x] Ramadan İmsakiyesi modal (correct Hijri dates)
-- [x] Ramadan progress bar (from API Hijri data)
-- [x] PWA with offline support (caches Diyanet API)
-- [x] URL parameter city support (?city=ankara)
-- [x] LocalStorage persistence
-- [x] Mobile-first responsive design
+- **PWA**: Service Worker + manifest.json
+- **Storage**: LocalStorage for preferences
 
 ## What's Been Implemented
 
-### Version 1.0 (Feb 19, 2026)
-- Initial build with Aladhan API
-
-### Version 2.0 (Feb 19, 2026) - Current
-**API Migration:**
-- Switched from Aladhan to Diyanet (emushaf.net)
-- Official Turkish Religious Affairs prayer times
-- Proper Turkish character support (İ, Ş, Ç, Ğ, Ü, Ö)
-
-**Bug Fixes:**
-- Fixed city change bug - countdown now updates immediately
-- Proper interval management with useRef (no memory leaks)
-- Single countdown interval at any time
-
-**Theme Updates:**
-- Dark mode is now default (ignores system preference)
-- User preference saved to localStorage
-- Smooth 500ms theme transitions
+### Version 3.0 (Feb 19, 2026) - Current
 
 **Ramadan Calendar Fix:**
-- Uses Hijri calendar from API response
-- Shows actual Ramadan days (not hardcoded)
-- Day number column in modal
-- Correct 29/30 day duration from data
+- Shows all 29 days (Feb 19 - Mar 19, 2026)
+- Uses generateRamadanDates() for complete date range
+- Days not yet in API show "--:--" placeholder
+- Correct day numbering (1-29)
 
-## Prioritized Backlog
-### P0 (Critical) - DONE
-- All core features implemented
+**Ad Container Added:**
+- Full-width container below Ramadan progress bar
+- 250px height, responsive, centered
+- Loads `./reklam.png` from same directory as index.html
+- Graceful fallback if image doesn't exist
 
-### P1 (Should Have)
-- [ ] Prayer notification reminders
-- [ ] Sahur (pre-dawn meal) countdown
+**Footer Attribution:**
+- "Namaz vakitleri T.C. Diyanet İşleri Başkanlığı verilerine dayanmaktadır."
+- "This site was developed by Seyrani Kenger."
 
-### P2 (Nice to Have)
-- [ ] Widget for home screens
-- [ ] Multiple language support
-- [ ] Custom city coordinates input
+### Previous Features (Preserved)
+- Live Iftar countdown (updates every second)
+- 6 prayer times grid
+- City selector (18 Turkish cities)
+- Dark/Light theme toggle (dark default)
+- PWA with offline support
+- URL parameter & localStorage persistence
 
-## Technical Notes
-- Diyanet API: `https://ezanvakti.emushaf.net/vakitler/{ilceId}`
-- Returns 30-32 days of prayer times
-- Hijri dates in `HicriTarihUzun` field (e.g., "5 Ramazan 1447")
-- Rate limit: 30 requests/5 min, 200/day
+## Ramadan 2026 Dates (Official)
+- Start: February 19, 2026 (1 Ramazan 1447)
+- End: March 19, 2026 (29 Ramazan 1447)
+- Eid: March 20, 2026
+- Duration: 29 days
+
+## Ad Deployment Instructions
+To enable advertisement:
+1. Create image file named `reklam.png`
+2. Upload to same directory as index.html on hosting
+3. Recommended size: 728x250 or similar leaderboard format
+4. Image will automatically appear in ad container
 
 ## Next Tasks
-1. User testing and feedback collection
-2. Consider ad placement for monetization
+1. Add actual reklam.png image for monetization
+2. Configure Google AdSense as alternative
 3. SEO optimization for Turkish keywords
-4. Submit to app stores (Trusted Web Activity)
