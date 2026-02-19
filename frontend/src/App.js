@@ -496,6 +496,9 @@ function App() {
                   <Calendar className="w-6 h-6 text-primary" />
                   {city?.name} — Aylık Namaz Vakitleri
                 </DialogTitle>
+                <DialogDescription className="sr-only">
+                  {city?.name} için 30 günlük namaz vakitleri tablosu
+                </DialogDescription>
               </DialogHeader>
               <ScrollArea className="h-[60vh] px-6 pb-6">
                 <div className="overflow-x-auto">
