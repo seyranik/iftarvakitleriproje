@@ -43,8 +43,29 @@ const TURKISH_CITIES = [
 const RAMADAN_2026 = {
   start: new Date(2026, 1, 19), // Feb 19, 2026
   end: new Date(2026, 2, 19),   // Mar 19, 2026 (last day of Ramadan)
-  totalDays: 29
+  totalDays: 29 // 29 days for Ramadan 2026
 };
+
+// Generate all Ramadan dates
+function generateRamadanDates() {
+  const dates = [];
+  const start = new Date(RAMADAN_2026.start);
+  const end = new Date(RAMADAN_2026.end);
+  
+  let current = new Date(start);
+  while (current <= end) {
+    dates.push({
+      date: new Date(current),
+      dateStr: `${current.getDate().toString().padStart(2, "0")}.${(current.getMonth() + 1).toString().padStart(2, "0")}.${current.getFullYear()}`,
+      dayNumber: Math.floor((current - start) / (1000 * 60 * 60 * 24)) + 1
+    });
+    current.setDate(current.getDate() + 1);
+  }
+  
+  return dates;
+}
+
+const ALL_RAMADAN_DATES = generateRamadanDates();
 
 // Prayer icons mapping
 const PRAYER_ICONS = {
