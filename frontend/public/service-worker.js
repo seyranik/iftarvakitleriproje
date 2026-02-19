@@ -1,4 +1,4 @@
-const CACHE_NAME = 'iftar-vakti-v1';
+const CACHE_NAME = 'iftar-vakti-v2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -46,13 +46,13 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
   
-  // Skip API requests - always fetch from network
-  if (event.request.url.includes('/api/') || event.request.url.includes('api.aladhan.com')) {
+  // Handle Diyanet API requests (ezanvakti.emushaf.net)
+  if (event.request.url.includes('ezanvakti.emushaf.net')) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
           // Cache successful API responses for offline use
-          if (response.status === 200 && event.request.url.includes('api.aladhan.com')) {
+          if (response.status === 200) {
             const responseClone = response.clone();
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(event.request, responseClone);
@@ -65,6 +65,11 @@ self.addEventListener('fetch', (event) => {
           return caches.match(event.request);
         })
     );
+    return;
+  }
+  
+  // Skip other API requests
+  if (event.request.url.includes('/api/')) {
     return;
   }
   
