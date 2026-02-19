@@ -674,9 +674,9 @@ function App() {
                     <table className="w-full text-sm">
                       <thead className="sticky top-0 bg-background z-10">
                         <tr className="border-b">
-                          {ramadanInfo.isRamadan && (
+                          {ramadanInfo.isRamadan ? (
                             <th className="text-center py-3 px-2 font-medium text-primary">Gün</th>
-                          )}
+                          ) : null}
                           <th className="text-left py-3 px-2 font-medium text-muted-foreground">Tarih</th>
                           <th className="text-center py-3 px-2 font-medium text-muted-foreground">İmsak</th>
                           <th className="text-center py-3 px-2 font-medium text-muted-foreground">Güneş</th>
@@ -693,10 +693,10 @@ function App() {
                           const isToday = day.MiladiTarihKisa === todayStr;
                           
                           // Extract Ramadan day number from Hijri date
-                          let ramadanDay = null;
-                          if (ramadanInfo.isRamadan && day.HicriTarihUzun) {
+                          let ramadanDay = index + 1;
+                          if (day.HicriTarihUzun) {
                             const match = day.HicriTarihUzun.match(/^(\d+)\s+Ramazan/);
-                            ramadanDay = match ? parseInt(match[1]) : index + 1;
+                            if (match) ramadanDay = parseInt(match[1]);
                           }
                           
                           return (
@@ -705,11 +705,11 @@ function App() {
                               className={`border-b transition-colors ${isToday ? "bg-primary/10" : "hover:bg-muted/50"}`}
                               data-testid={`schedule-row-${index}`}
                             >
-                              {ramadanInfo.isRamadan && (
+                              {ramadanInfo.isRamadan ? (
                                 <td className="text-center py-3 px-2 font-bold text-primary">
-                                  {ramadanDay || index + 1}
+                                  {ramadanDay}
                                 </td>
-                              )}
+                              ) : null}
                               <td className="py-3 px-2 font-medium whitespace-nowrap">
                                 {day.MiladiTarihKisa}
                               </td>
