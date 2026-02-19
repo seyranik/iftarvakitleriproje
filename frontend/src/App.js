@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import "@/App.css";
-import { Sun, Moon, Sunrise, CloudSun, Sunset, Calendar, MapPin } from "lucide-react";
+import { Sun, Moon, Sunrise, CloudSun, Sunset, Calendar, MapPin, UtensilsCrossed, Soup, Beef, Wheat, Salad, Cherry, CakeSlice } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,6 +12,139 @@ import { toast } from "sonner";
 // DIYANET API CONFIGURATION (emushaf.net)
 // ============================================
 const API_BASE = "https://ezanvakti.emushaf.net";
+
+// ============================================
+// MENU DATA - Traditional Turkish Iftar Items
+// ============================================
+const MENU_DATA = {
+  soups: [
+    "Mercimek Çorbası", "Ezogelin Çorbası", "Tarhana Çorbası", "Yayla Çorbası",
+    "Domates Çorbası", "Şehriye Çorbası", "Tavuk Suyu Çorbası", "Düğün Çorbası",
+    "Paça Çorbası", "Işkembe Çorbası", "Sebze Çorbası", "Kremalı Mantar Çorbası",
+    "Patates Çorbası", "Havuç Çorbası", "Brokoli Çorbası", "Karnabahar Çorbası",
+    "Kabak Çorbası", "Bezelye Çorbası", "Yeşil Mercimek Çorbası", "Bulgur Çorbası",
+    "Erişte Çorbası", "Analı Kızlı Çorbası", "Toyga Çorbası", "Süzme Mercimek",
+    "Köfteli Şehriye Çorbası", "Pirinç Çorbası", "Un Çorbası", "Yoğurt Çorbası",
+    "Kemik Suyu Çorbası", "Bamya Çorbası", "Lahana Çorbası", "Pazı Çorbası"
+  ],
+  mainDishes: [
+    "Kuru Fasulye", "Nohutlu Pilav", "Etli Türlü", "Tavuk Sote",
+    "İzmir Köfte", "Karnıyarık", "İmam Bayıldı", "Hünkar Beğendi",
+    "Tas Kebabı", "Orman Kebabı", "Terbiyeli Köfte", "Kadınbudu Köfte",
+    "Patlıcan Musakka", "Kabak Musakka", "Etli Kapuska", "Etli Lahana Sarması",
+    "Yaprak Sarma", "Etli Biber Dolması", "Etli Patlıcan Dolması", "Etli Kabak Dolması",
+    "Tavuk Tandır", "Fırın Tavuk", "Tavuklu Güveç", "Et Güveç",
+    "Kuzu Tandır", "Kuzu Incik", "Dana Haşlama", "Et Kavurma",
+    "Piliç Şnitzel", "Tavuk Pirzola", "Bonfile", "Antrikot"
+  ],
+  sideDishes: [
+    "Pirinç Pilavı", "Bulgur Pilavı", "Şehriyeli Pilav", "Tereyağlı Pilav",
+    "İç Pilav", "Nohutlu Pilav", "Bademli Pilav", "Fıstıklı Pilav",
+    "Domatesli Pilav", "Sebzeli Pilav", "Mantarlı Pilav", "Havuçlu Pilav",
+    "Kestaneli Pilav", "Üzümlü Pilav", "Kuş Üzümlü Pilav", "Tavuklu Pilav",
+    "Makarna", "Fiyonk Makarna", "Kalem Makarna", "Burgu Makarna",
+    "Erişte", "Mantı", "Kayseri Mantısı", "Türk Raviolisi",
+    "Domates Soslu Makarna", "Kremalı Makarna", "Fırın Makarna", "Kıymalı Makarna",
+    "Arpa Şehriye Pilavı", "Tel Şehriye Pilavı", "Kuskus", "Kinoa Pilavı"
+  ],
+  salads: [
+    "Çoban Salata", "Mevsim Salata", "Akdeniz Salata", "Yeşil Salata",
+    "Roka Salata", "Marul Salata", "Havuç Salata", "Lahana Salata",
+    "Turp Salata", "Pancar Salata", "Patates Salata", "Makarna Salata",
+    "Ton Balıklı Salata", "Tavuk Salata", "Sezar Salata", "Yunan Salata",
+    "Rus Salata", "Amerikan Salata", "Kısır", "Gavurdağı Salata",
+    "Piyaz", "Çingene Salata", "Karışık Salata", "Bahar Salata",
+    "Enginar Salata", "Semizotu Salata", "Nohut Salata", "Fasulye Salata",
+    "Mercimek Salata", "Kinoa Salata", "Bulgur Salata", "Közlenmiş Biber Salata"
+  ],
+  mezes: [
+    "Humus", "Haydari", "Atom", "Acılı Ezme", "Muhammara", "Babaganuş",
+    "Köpoğlu", "Patlıcan Salata", "Tarator", "Cacık", "Yoğurtlu Patlıcan",
+    "Yoğurtlu Kabak", "Yoğurtlu Semizotu", "Yoğurtlu Havuç", "Yoğurtlu Ispanak",
+    "Zeytinyağlı Fasulye", "Zeytinyağlı Barbunya", "Zeytinyağlı Bakla",
+    "Zeytinyağlı Enginar", "Zeytinyağlı Kereviz", "Zeytinyağlı Pırasa",
+    "Turşu", "Zeytin", "Peynir Tabağı", "Beyaz Peynir", "Fava",
+    "Mercimek Köfte", "Patates Köfte", "Mücver", "Sigara Böreği",
+    "Paçanga Böreği", "Çiğ Köfte", "İçli Köfte", "Fellah Köfte", "Kısır",
+    "Ezme", "Şakşuka", "Patlıcan Biber Kızartma", "Kabak Kızartma",
+    "Havuç Tarator", "Kereviz Tarator", "Sarımsaklı Yoğurt", "Naneli Yoğurt",
+    "Biber Turşusu", "Lahana Turşusu", "Közlenmiş Patlıcan", "Közlenmiş Biber",
+    "Lor Peynir", "Tulum Peynir", "Çökelek", "Kaşar Peynir",
+    "Gözleme", "Katmer", "Simit", "Poğaça", "Açma", "Pişi"
+  ],
+  desserts: [
+    "Baklava", "Kadayıf", "Künefe", "Şöbiyet", "Sütlaç", "Muhallebi",
+    "Kazandibi", "Tavuk Göğsü", "Keşkül", "Aşure", "Güllaç", "Lokma",
+    "Tulumba", "Şekerpare", "Revani", "Kalburabasma", "Trileçe", "Tiramisu",
+    "Profiterol", "Supangle", "Mozaik Pasta", "Cheesecake", "Brownie",
+    "Magnolia", "San Sebastian", "Fırın Sütlaç", "Höşmerim", "Kabak Tatlısı",
+    "Ayva Tatlısı", "Armut Tatlısı", "Helva", "Tahin Helva", "Un Helva"
+  ]
+};
+
+// Seeded Random Number Generator (Mulberry32)
+class SeededRandom {
+  constructor(seed) {
+    this.seed = seed;
+  }
+  next() {
+    let t = this.seed += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+  nextInt(max) {
+    return Math.floor(this.next() * max);
+  }
+  shuffle(array) {
+    const result = [...array];
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = this.nextInt(i + 1);
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+  }
+}
+
+// Generate all 29 Ramadan menus deterministically
+function generateRamadanMenus() {
+  const cached = localStorage.getItem("ramadan-menus-2026");
+  if (cached) {
+    try {
+      const menus = JSON.parse(cached);
+      if (menus && menus.length === 29) return menus;
+    } catch (e) {
+      localStorage.removeItem("ramadan-menus-2026");
+    }
+  }
+  
+  const rng = new SeededRandom(2026 * 1000);
+  const shuffledSoups = rng.shuffle(MENU_DATA.soups).slice(0, 29);
+  const shuffledMains = rng.shuffle(MENU_DATA.mainDishes).slice(0, 29);
+  const shuffledSides = rng.shuffle(MENU_DATA.sideDishes).slice(0, 29);
+  const shuffledSalads = rng.shuffle(MENU_DATA.salads).slice(0, 29);
+  const shuffledMezes = rng.shuffle(MENU_DATA.mezes);
+  const shuffledDesserts = rng.shuffle(MENU_DATA.desserts).slice(0, 29);
+  
+  const menus = [];
+  for (let day = 1; day <= 29; day++) {
+    menus.push({
+      day,
+      soup: shuffledSoups[day - 1],
+      main: shuffledMains[day - 1],
+      side: shuffledSides[day - 1],
+      salad: shuffledSalads[day - 1],
+      meze1: shuffledMezes[(day - 1) * 2],
+      meze2: shuffledMezes[(day - 1) * 2 + 1],
+      dessert: shuffledDesserts[day - 1]
+    });
+  }
+  
+  localStorage.setItem("ramadan-menus-2026", JSON.stringify(menus));
+  return menus;
+}
+
+const RAMADAN_MENUS = generateRamadanMenus();
 
 // Turkish cities with Diyanet API IDs (şehir ID + ilçe ID for merkez)
 const TURKISH_CITIES = [
