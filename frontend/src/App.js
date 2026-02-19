@@ -388,7 +388,7 @@ function App() {
     if (cached) {
       try {
         const data = JSON.parse(cached);
-        if (data.length >= 29) {
+        if (data.length >= 28) { // At least 28 days
           setFullRamadanData(data);
           return data;
         }
@@ -404,31 +404,41 @@ function App() {
       
       const data = await response.json();
       
-      // Filter for Ramadan dates (Feb 19 - Mar 19, 2026)
-      const ramadanDays = data.filter(day => {
-        const parts = day.MiladiTarihKisa.split(".");
-        if (parts.length === 3) {
-          const date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-          return isDateInRamadan(date);
+      // Create a map of date -> prayer times from API
+      const apiDataMap = {};
+      data.forEach(day => {
+        apiDataMap[day.MiladiTarihKisa] = day;
+      });
+      
+      // Build complete Ramadan schedule using ALL_RAMADAN_DATES
+      const completeRamadanData = ALL_RAMADAN_DATES.map(ramadanDate => {
+        const apiDay = apiDataMap[ramadanDate.dateStr];
+        
+        if (apiDay) {
+          return {
+            ...apiDay,
+            ramadanDay: ramadanDate.dayNumber
+          };
+        } else {
+          // Day not in API response - create placeholder
+          return {
+            MiladiTarihKisa: ramadanDate.dateStr,
+            Imsak: "--:--",
+            Gunes: "--:--",
+            Ogle: "--:--",
+            Ikindi: "--:--",
+            Aksam: "--:--",
+            Yatsi: "--:--",
+            ramadanDay: ramadanDate.dayNumber,
+            isPlaceholder: true
+          };
         }
-        return false;
       });
       
-      // Sort by date
-      ramadanDays.sort((a, b) => {
-        const partsA = a.MiladiTarihKisa.split(".");
-        const partsB = b.MiladiTarihKisa.split(".");
-        const dateA = new Date(parseInt(partsA[2]), parseInt(partsA[1]) - 1, parseInt(partsA[0]));
-        const dateB = new Date(parseInt(partsB[2]), parseInt(partsB[1]) - 1, parseInt(partsB[0]));
-        return dateA - dateB;
-      });
+      localStorage.setItem(cacheKey, JSON.stringify(completeRamadanData));
+      setFullRamadanData(completeRamadanData);
       
-      if (ramadanDays.length > 0) {
-        localStorage.setItem(cacheKey, JSON.stringify(ramadanDays));
-        setFullRamadanData(ramadanDays);
-      }
-      
-      return ramadanDays;
+      return completeRamadanData;
     } catch (error) {
       console.error("Failed to fetch Ramadan schedule:", error);
       return fullRamadanData;
