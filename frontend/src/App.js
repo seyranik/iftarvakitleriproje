@@ -181,7 +181,6 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [iftarPassed, setIftarPassed] = useState(false);
-  const [adImageError, setAdImageError] = useState(false);
   
   // Refs for interval management (prevents memory leaks)
   const countdownIntervalRef = useRef(null);
