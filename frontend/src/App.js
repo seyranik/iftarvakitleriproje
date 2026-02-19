@@ -828,6 +828,111 @@ function App() {
           )}
         </section>
         
+        {/* Daily Iftar Menu */}
+        <section className="mb-8 animate-fade-in-up animation-delay-150" data-testid="menu-section">
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            {/* Menu Header */}
+            <div className="flex items-center justify-between px-5 py-4 bg-primary/5 border-b border-border">
+              <div className="flex items-center gap-3">
+                <UtensilsCrossed className="w-5 h-5 text-primary" />
+                <h2 className="text-lg font-medium text-foreground">Günün İftar Menüsü</h2>
+              </div>
+              <span className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1.5 rounded-full">
+                {ramadanInfo.isRamadan ? `${ramadanInfo.dayOfRamadan}. Gün` : "Örnek"}
+              </span>
+            </div>
+            
+            {/* Menu Content */}
+            <div className="p-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {/* Soup */}
+                <div className="flex items-start gap-3 p-3 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
+                  <div className="w-9 h-9 rounded-lg bg-amber-500 flex items-center justify-center flex-shrink-0">
+                    <Soup className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Çorba</span>
+                    <p className="text-sm font-medium text-foreground leading-tight">{ramadanInfo.isRamadan ? RAMADAN_MENUS[ramadanInfo.dayOfRamadan - 1]?.soup : RAMADAN_MENUS[0]?.soup}</p>
+                  </div>
+                </div>
+                
+                {/* Main Dish */}
+                <div className="flex items-start gap-3 p-3 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
+                  <div className="w-9 h-9 rounded-lg bg-red-500 flex items-center justify-center flex-shrink-0">
+                    <Beef className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Ana Yemek</span>
+                    <p className="text-sm font-medium text-foreground leading-tight">{ramadanInfo.isRamadan ? RAMADAN_MENUS[ramadanInfo.dayOfRamadan - 1]?.main : RAMADAN_MENUS[0]?.main}</p>
+                  </div>
+                </div>
+                
+                {/* Side Dish */}
+                <div className="flex items-start gap-3 p-3 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
+                  <div className="w-9 h-9 rounded-lg bg-violet-500 flex items-center justify-center flex-shrink-0">
+                    <Wheat className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Pilav</span>
+                    <p className="text-sm font-medium text-foreground leading-tight">{ramadanInfo.isRamadan ? RAMADAN_MENUS[ramadanInfo.dayOfRamadan - 1]?.side : RAMADAN_MENUS[0]?.side}</p>
+                  </div>
+                </div>
+                
+                {/* Salad */}
+                <div className="flex items-start gap-3 p-3 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
+                  <div className="w-9 h-9 rounded-lg bg-green-500 flex items-center justify-center flex-shrink-0">
+                    <Salad className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Salata</span>
+                    <p className="text-sm font-medium text-foreground leading-tight">{ramadanInfo.isRamadan ? RAMADAN_MENUS[ramadanInfo.dayOfRamadan - 1]?.salad : RAMADAN_MENUS[0]?.salad}</p>
+                  </div>
+                </div>
+                
+                {/* Meze 1 */}
+                <div className="flex items-start gap-3 p-3 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
+                  <div className="w-9 h-9 rounded-lg bg-pink-500 flex items-center justify-center flex-shrink-0">
+                    <Cherry className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Meze</span>
+                    <p className="text-sm font-medium text-foreground leading-tight">{ramadanInfo.isRamadan ? RAMADAN_MENUS[ramadanInfo.dayOfRamadan - 1]?.meze1 : RAMADAN_MENUS[0]?.meze1}</p>
+                  </div>
+                </div>
+                
+                {/* Meze 2 */}
+                <div className="flex items-start gap-3 p-3 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
+                  <div className="w-9 h-9 rounded-lg bg-pink-500 flex items-center justify-center flex-shrink-0">
+                    <Cherry className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Meze</span>
+                    <p className="text-sm font-medium text-foreground leading-tight">{ramadanInfo.isRamadan ? RAMADAN_MENUS[ramadanInfo.dayOfRamadan - 1]?.meze2 : RAMADAN_MENUS[0]?.meze2}</p>
+                  </div>
+                </div>
+                
+                {/* Dessert - spans 2 columns on mobile */}
+                <div className="col-span-2 md:col-span-2 flex items-start gap-3 p-3 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
+                  <div className="w-9 h-9 rounded-lg bg-orange-500 flex items-center justify-center flex-shrink-0">
+                    <CakeSlice className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tatlı</span>
+                    <p className="text-sm font-medium text-foreground leading-tight">{ramadanInfo.isRamadan ? RAMADAN_MENUS[ramadanInfo.dayOfRamadan - 1]?.dessert : RAMADAN_MENUS[0]?.dessert}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Sample note for non-Ramadan */}
+            {!ramadanInfo.isRamadan && (
+              <div className="px-4 py-2 bg-primary/5 border-t border-border text-center">
+                <span className="text-xs text-muted-foreground">Örnek Menü (Ramazan Dışı)</span>
+              </div>
+            )}
+          </div>
+        </section>
+        
         {/* Prayer Times Grid */}
         {prayerTimes && (
           <section className="mb-12 animate-fade-in-up animation-delay-200" data-testid="prayer-times-grid">
