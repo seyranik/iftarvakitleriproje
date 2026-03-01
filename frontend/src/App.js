@@ -820,9 +820,13 @@ function App() {
         settings.notificationsEnabled = true;
         localStorage.setItem("prayer-settings", JSON.stringify(settings));
         toast.success("Bildirimler etkinleştirildi");
-      } else {
-        toast.error("Bildirim izni verilmedi");
+      } else if (permission === "denied") {
+        // Only show error if user explicitly denied
+        toast.error("Bildirim izni reddedildi. Tarayıcı ayarlarından izin verebilirsiniz.");
+      } else if (permission === "unsupported") {
+        toast.error("Tarayıcınız bildirimleri desteklemiyor.");
       }
+      // Don't show error for "default" (dismissed) - just silently don't enable
     } else {
       setNotificationsEnabled(false);
       const settings = JSON.parse(localStorage.getItem("prayer-settings") || "{}");
