@@ -497,6 +497,8 @@ function App() {
   
   useEffect(() => {
     const savedCity = localStorage.getItem("prayer-city");
+    const locationPromptShown = localStorage.getItem("location-prompt-shown");
+    
     if (savedCity) {
       try {
         const c = JSON.parse(savedCity);
@@ -506,7 +508,19 @@ function App() {
         }
       } catch (e) {}
     }
-    setCity(TURKISH_CITIES.find(c => c.name === "Erzincan") || TURKISH_CITIES[0]);
+    
+    // First visit - show location prompt
+    if (!locationPromptShown && "geolocation" in navigator) {
+      setShowLocationPrompt(true);
+      // Set default city temporarily while showing prompt
+      const defaultCity = TURKISH_CITIES.find(c => c.name === DEFAULT_CITY) || TURKISH_CITIES[0];
+      setCity(defaultCity);
+    } else {
+      // Location prompt already shown or geolocation not supported
+      const defaultCity = TURKISH_CITIES.find(c => c.name === DEFAULT_CITY) || TURKISH_CITIES[0];
+      setCity(defaultCity);
+      localStorage.setItem("prayer-city", JSON.stringify(defaultCity));
+    }
   }, []);
 
   const handleCityChange = useCallback((cityName) => {
@@ -518,6 +532,72 @@ function App() {
       localStorage.setItem("prayer-city", JSON.stringify(newCity));
     }
   }, []);
+
+  // ============================================
+  // LOCATION PERMISSION HANDLERS
+  // ============================================
+  
+  const handleLocationAccept = async () => {
+    setLocationLoading(true);
+    localStorage.setItem("location-prompt-shown", "true");
+    
+    try {
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: false,
+          timeout: 10000,
+          maximumAge: 600000
+        });
+      });
+      
+      const { latitude, longitude } = position.coords;
+      const detectedCity = findNearestCity(latitude, longitude);
+      
+      if (detectedCity) {
+        setCity(detectedCity);
+        localStorage.setItem("prayer-city", JSON.stringify(detectedCity));
+        toast.success(`Konumunuz tespit edildi: ${detectedCity.name}`);
+      } else {
+        const defaultCity = TURKISH_CITIES.find(c => c.name === DEFAULT_CITY) || TURKISH_CITIES[0];
+        setCity(defaultCity);
+        localStorage.setItem("prayer-city", JSON.stringify(defaultCity));
+      }
+    } catch (error) {
+      console.error("Geolocation error:", error);
+      const defaultCity = TURKISH_CITIES.find(c => c.name === DEFAULT_CITY) || TURKISH_CITIES[0];
+      setCity(defaultCity);
+      localStorage.setItem("prayer-city", JSON.stringify(defaultCity));
+      toast.info("Konum alınamadı, varsayılan şehir seçildi: Erzincan");
+    } finally {
+      setLocationLoading(false);
+      setShowLocationPrompt(false);
+      
+      // Show notification prompt after location is handled
+      setTimeout(() => {
+        const promptShown = localStorage.getItem("notification-prompt-shown");
+        if (!promptShown && "Notification" in window) {
+          setShowNotificationPrompt(true);
+        }
+      }, 1000);
+    }
+  };
+
+  const handleLocationDecline = () => {
+    localStorage.setItem("location-prompt-shown", "true");
+    setShowLocationPrompt(false);
+    
+    const defaultCity = TURKISH_CITIES.find(c => c.name === DEFAULT_CITY) || TURKISH_CITIES[0];
+    setCity(defaultCity);
+    localStorage.setItem("prayer-city", JSON.stringify(defaultCity));
+    
+    // Show notification prompt after location is handled
+    setTimeout(() => {
+      const promptShown = localStorage.getItem("notification-prompt-shown");
+      if (!promptShown && "Notification" in window) {
+        setShowNotificationPrompt(true);
+      }
+    }, 1000);
+  };
 
   // ============================================
   // FETCH PRAYER TIMES
