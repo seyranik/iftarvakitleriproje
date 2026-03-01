@@ -1181,12 +1181,15 @@ function App() {
       
       {/* Settings Dialog */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" aria-describedby="settings-description">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Settings className="w-5 h-5 text-primary" />
               Ayarlar
             </DialogTitle>
+            <DialogDescription id="settings-description" className="sr-only">
+              Bildirim ve görünüm ayarlarını düzenleyin
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-6 py-4">
