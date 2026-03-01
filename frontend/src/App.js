@@ -1145,63 +1145,73 @@ function App() {
           </section>
         )}
         
-        {/* Schedule Button */}
-        <section className="flex justify-center mb-8 animate-fade-in-up animation-delay-300">
-          <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2 rounded-full px-6 py-5 text-base hover:bg-primary hover:text-primary-foreground transition-all">
-                <Calendar className="w-5 h-5" />
-                {isRamadan ? "Ramazan İmsakiyesi" : "Aylık Takvim"}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[80vh] p-0 overflow-hidden">
-              <DialogHeader className="p-6 pb-0">
-                <DialogTitle className="text-2xl font-light flex items-center gap-2">
-                  <Calendar className="w-6 h-6 text-primary" />
-                  {city?.name} — {isRamadan ? "Ramazan İmsakiyesi" : "Aylık Namaz Vakitleri"}
-                </DialogTitle>
-                <DialogDescription className="text-sm text-muted-foreground mt-1">
-                  {city?.name} için namaz vakitleri
-                </DialogDescription>
-              </DialogHeader>
-              <div className="h-[60vh] overflow-y-auto overflow-x-auto px-4 md:px-6 pb-6">
-                <div className="min-w-[600px]">
-                  <table className="w-full text-sm">
-                    <thead className="sticky top-0 bg-background z-10">
-                      <tr className="border-b">
-                        <th className="text-left py-3 px-2 font-medium text-muted-foreground">Tarih</th>
-                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">İmsak</th>
-                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">Güneş</th>
-                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">Öğle</th>
-                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">İkindi</th>
-                        <th className="text-center py-3 px-2 font-medium text-primary font-bold">Akşam</th>
-                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">Yatsı</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {monthlyData.map((day, index) => {
-                        const todayStr = getTodayString();
-                        const isToday = day.MiladiTarihKisa === todayStr;
-                        
-                        return (
-                          <tr key={index} className={`border-b transition-colors ${isToday ? "bg-primary/10" : "hover:bg-muted/50"}`}>
-                            <td className="py-3 px-2 font-medium whitespace-nowrap">{day.MiladiTarihKisa}</td>
-                            <td className="text-center py-3 px-2 tabular-nums">{day.Imsak}</td>
-                            <td className="text-center py-3 px-2 tabular-nums">{day.Gunes}</td>
-                            <td className="text-center py-3 px-2 tabular-nums">{day.Ogle}</td>
-                            <td className="text-center py-3 px-2 tabular-nums">{day.Ikindi}</td>
-                            <td className="text-center py-3 px-2 tabular-nums font-medium text-primary">{day.Aksam}</td>
-                            <td className="text-center py-3 px-2 tabular-nums">{day.Yatsi}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+        {/* Schedule Button - Only show during Ramadan */}
+        {isRamadan && (
+          <section className="flex justify-center mb-8 animate-fade-in-up animation-delay-300">
+            <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="gap-2 rounded-full px-6 py-5 text-base hover:bg-primary hover:text-primary-foreground transition-all">
+                  <Calendar className="w-5 h-5" />
+                  Ramazan İmsakiyesi
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl max-h-[80vh] p-0 overflow-hidden">
+                <DialogHeader className="p-6 pb-0">
+                  <DialogTitle className="text-2xl font-light flex items-center gap-2">
+                    <Calendar className="w-6 h-6 text-primary" />
+                    {city?.name} — Ramazan İmsakiyesi
+                  </DialogTitle>
+                  <DialogDescription className="text-sm text-muted-foreground mt-1">
+                    {city?.name} için Ramazan namaz vakitleri
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="h-[60vh] overflow-y-auto overflow-x-auto px-4 md:px-6 pb-6">
+                  <div className="min-w-[600px]">
+                    <table className="w-full text-sm">
+                      <thead className="sticky top-0 bg-background z-10">
+                        <tr className="border-b">
+                          <th className="text-left py-3 px-2 font-medium text-muted-foreground">Tarih</th>
+                          <th className="text-center py-3 px-2 font-medium text-muted-foreground">İmsak</th>
+                          <th className="text-center py-3 px-2 font-medium text-muted-foreground">Sabah</th>
+                          <th className="text-center py-3 px-2 font-medium text-muted-foreground">Öğle</th>
+                          <th className="text-center py-3 px-2 font-medium text-muted-foreground">İkindi</th>
+                          <th className="text-center py-3 px-2 font-medium text-primary font-bold">Akşam</th>
+                          <th className="text-center py-3 px-2 font-medium text-muted-foreground">Yatsı</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {monthlyData
+                          .filter(day => {
+                            // Filter to only show Ramadan dates
+                            if (!ramadanDates || !ramadanDates.currentRamadan) return true;
+                            const [dayNum, monthNum, year] = day.MiladiTarihKisa.split(".").map(Number);
+                            const dayDate = new Date(year, monthNum - 1, dayNum);
+                            return isDateInRamadan(dayDate, ramadanDates);
+                          })
+                          .map((day, index) => {
+                            const todayStr = getTodayString();
+                            const isToday = day.MiladiTarihKisa === todayStr;
+                            
+                            return (
+                              <tr key={index} className={`border-b transition-colors ${isToday ? "bg-primary/10" : "hover:bg-muted/50"}`}>
+                                <td className="py-3 px-2 font-medium whitespace-nowrap">{day.MiladiTarihKisa}</td>
+                                <td className="text-center py-3 px-2 tabular-nums">{day.Imsak}</td>
+                                <td className="text-center py-3 px-2 tabular-nums">{day.Gunes}</td>
+                                <td className="text-center py-3 px-2 tabular-nums">{day.Ogle}</td>
+                                <td className="text-center py-3 px-2 tabular-nums">{day.Ikindi}</td>
+                                <td className="text-center py-3 px-2 tabular-nums font-medium text-primary">{day.Aksam}</td>
+                                <td className="text-center py-3 px-2 tabular-nums">{day.Yatsi}</td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </section>
+              </DialogContent>
+            </Dialog>
+          </section>
+        )}
         
         {/* Footer */}
         <footer className="text-center text-sm text-muted-foreground animate-fade-in-up animation-delay-400 space-y-2">
