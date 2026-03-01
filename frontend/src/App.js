@@ -445,12 +445,6 @@ function App() {
     setNotificationsEnabled(settings.notificationsEnabled || false);
     setSilentMode(settings.silentMode || false);
     
-    // Check if notification prompt was shown
-    const promptShown = localStorage.getItem("notification-prompt-shown");
-    if (!promptShown && "Notification" in window) {
-      setShowNotificationPrompt(true);
-    }
-    
     // Check Friday
     setTodayIsFriday(isFriday());
     if (isFriday()) {
