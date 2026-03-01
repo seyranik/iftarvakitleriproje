@@ -635,9 +635,10 @@ function App() {
     const todayStr = getTodayString();
     const todayData = data.find(d => d.MiladiTarihKisa === todayStr) || data[0];
     
+    // Map Güneş from API to Sabah for display
     setPrayerTimes({
       Imsak: todayData.Imsak,
-      Gunes: todayData.Gunes,
+      Sabah: todayData.Gunes, // Sabah prayer time = Güneş time from API
       Ogle: todayData.Ogle,
       Ikindi: todayData.Ikindi,
       Aksam: todayData.Aksam,
