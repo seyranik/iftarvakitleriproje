@@ -158,20 +158,21 @@ const FRIDAY_HADITHS = [
 // ============================================
 const PRAYER_NAMES = {
   Imsak: "İmsak",
-  Gunes: "Güneş",
+  Sabah: "Sabah",
   Ogle: "Öğle",
   Ikindi: "İkindi",
   Aksam: "Akşam",
   Yatsi: "Yatsı"
 };
 
-const PRAYER_ORDER = ["Imsak", "Gunes", "Ogle", "Ikindi", "Aksam", "Yatsi"];
-const MAIN_PRAYERS = ["Gunes", "Ogle", "Ikindi", "Aksam", "Yatsi"]; // For countdown (excluding Imsak)
+// Prayer order - NO Güneş, using Sabah instead (Sabah uses Güneş time from API)
+const PRAYER_ORDER = ["Imsak", "Sabah", "Ogle", "Ikindi", "Aksam", "Yatsi"];
+const MAIN_PRAYERS = ["Sabah", "Ogle", "Ikindi", "Aksam", "Yatsi"]; // For countdown (excluding Imsak)
 
 // Prayer icons
 const PRAYER_ICONS = {
   Imsak: Sunrise,
-  Gunes: Sun,
+  Sabah: Sun,
   Ogle: Sun,
   Ikindi: CloudSun,
   Aksam: Sunset,
