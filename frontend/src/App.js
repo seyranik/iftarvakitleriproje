@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import "@/App.css";
-import { Sun, Moon, Sunrise, CloudSun, Sunset, Calendar, MapPin, Bell, BellOff, Volume2, VolumeX, Settings, X, Star, BookOpen } from "lucide-react";
+import { Sun, Moon, Sunrise, CloudSun, Sunset, Calendar, MapPin, Bell, BellOff, Volume2, VolumeX, Settings, X, Star, BookOpen, Navigation, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
