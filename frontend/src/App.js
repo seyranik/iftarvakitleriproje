@@ -669,41 +669,66 @@ function App() {
       let targetTime = null;
       let minDiff = Infinity;
       
-      // Find next prayer
-      for (const prayer of MAIN_PRAYERS) {
-        const prayerTime = parseTimeToDate(prayerTimes[prayer]);
-        if (!prayerTime) continue;
-        
-        const diff = prayerTime - now;
-        if (diff > 0 && diff < minDiff) {
-          minDiff = diff;
-          targetPrayer = prayer;
-          targetTime = prayerTime;
+      // RAMADAN MODE: Only countdown to Iftar (Akşam)
+      if (isRamadan) {
+        const iftarTime = parseTimeToDate(prayerTimes["Aksam"]);
+        if (iftarTime) {
+          const diff = iftarTime - now;
+          if (diff > 0) {
+            targetPrayer = "Aksam";
+            targetTime = iftarTime;
+            minDiff = diff;
+          } else {
+            // Iftar passed, get tomorrow's Iftar
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = `${String(tomorrow.getDate()).padStart(2, "0")}.${String(tomorrow.getMonth() + 1).padStart(2, "0")}.${tomorrow.getFullYear()}`;
+            const tomorrowData = monthlyData.find(d => d.MiladiTarihKisa === tomorrowStr);
+            
+            if (tomorrowData) {
+              targetPrayer = "Aksam";
+              targetTime = parseTimeToDate(tomorrowData.Aksam, tomorrow);
+              minDiff = targetTime - now;
+            }
+          }
         }
-      }
-      
-      // If no prayer left today, get first prayer of tomorrow
-      if (!targetPrayer) {
-        const tomorrow = new Date(now);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowStr = `${String(tomorrow.getDate()).padStart(2, "0")}.${String(tomorrow.getMonth() + 1).padStart(2, "0")}.${tomorrow.getFullYear()}`;
-        const tomorrowData = monthlyData.find(d => d.MiladiTarihKisa === tomorrowStr);
         
-        if (tomorrowData) {
-          targetPrayer = "Gunes"; // First prayer after Imsak
-          targetTime = parseTimeToDate(tomorrowData.Gunes, tomorrow);
-          minDiff = targetTime - now;
-        }
-      }
-      
-      if (targetPrayer && targetTime) {
-        setNextPrayer(targetPrayer);
-        setCountdown(formatCountdown(minDiff));
-        
-        // Set countdown label based on Ramadan and prayer
-        if (isRamadan && targetPrayer === "Aksam") {
+        if (targetPrayer && targetTime) {
+          setNextPrayer(targetPrayer);
+          setCountdown(formatCountdown(minDiff));
           setCountdownLabel("İftar'a Kalan Süre");
-        } else {
+        }
+      } else {
+        // NORMAL MODE: Find next prayer
+        for (const prayer of MAIN_PRAYERS) {
+          const prayerTime = parseTimeToDate(prayerTimes[prayer]);
+          if (!prayerTime) continue;
+          
+          const diff = prayerTime - now;
+          if (diff > 0 && diff < minDiff) {
+            minDiff = diff;
+            targetPrayer = prayer;
+            targetTime = prayerTime;
+          }
+        }
+        
+        // If no prayer left today, get first prayer of tomorrow
+        if (!targetPrayer) {
+          const tomorrow = new Date(now);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const tomorrowStr = `${String(tomorrow.getDate()).padStart(2, "0")}.${String(tomorrow.getMonth() + 1).padStart(2, "0")}.${tomorrow.getFullYear()}`;
+          const tomorrowData = monthlyData.find(d => d.MiladiTarihKisa === tomorrowStr);
+          
+          if (tomorrowData) {
+            targetPrayer = "Sabah"; // First prayer after Imsak (using Sabah instead of Gunes)
+            targetTime = parseTimeToDate(tomorrowData.Gunes, tomorrow);
+            minDiff = targetTime - now;
+          }
+        }
+        
+        if (targetPrayer && targetTime) {
+          setNextPrayer(targetPrayer);
+          setCountdown(formatCountdown(minDiff));
           setCountdownLabel(`${PRAYER_NAMES[targetPrayer]} Namazına Kalan Süre`);
         }
       }
