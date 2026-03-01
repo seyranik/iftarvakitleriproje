@@ -966,10 +966,13 @@ function App() {
           <div className="flex items-center gap-2">
             <MapPin className="w-5 h-5 text-primary opacity-70" />
             <Select value={city?.name || ""} onValueChange={handleCityChange}>
-              <SelectTrigger className="bg-transparent border-none text-xl md:text-2xl font-light hover:bg-transparent hover:text-primary focus:ring-0 focus:ring-offset-0 px-0 shadow-none gap-2 w-auto">
+              <SelectTrigger 
+                className="bg-transparent border-none text-xl md:text-2xl font-light hover:bg-transparent hover:text-primary focus:ring-0 focus:ring-offset-0 px-0 shadow-none gap-2 w-auto"
+                data-testid="city-selector"
+              >
                 <SelectValue placeholder="Şehir seçin" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-[300px]">
                 {TURKISH_CITIES.map(c => (
                   <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
                 ))}
