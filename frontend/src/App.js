@@ -360,6 +360,36 @@ function sendNotification(title, body, options = {}) {
 }
 
 // ============================================
+// GEOLOCATION HELPERS
+// ============================================
+
+function findNearestCity(lat, lng) {
+  let nearest = null;
+  let minDistance = Infinity;
+  
+  for (const city of TURKISH_CITIES) {
+    if (!city.lat || !city.lng) continue;
+    
+    // Haversine formula for distance calculation
+    const R = 6371; // Earth's radius in km
+    const dLat = (city.lat - lat) * Math.PI / 180;
+    const dLng = (city.lng - lng) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat * Math.PI / 180) * Math.cos(city.lat * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearest = city;
+    }
+  }
+  
+  return nearest;
+}
+
+// ============================================
 // MAIN APP COMPONENT
 // ============================================
 function App() {
