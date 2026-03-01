@@ -1,114 +1,136 @@
-# İftar Vakti - Prayer Times App PRD
+# Namaz Vakitleri - Prayer Time Reminder PWA
 
 ## Original Problem Statement
-Build a modern, minimal, high-performance single-page web application that displays daily prayer times with primary focus on Iftar time and a live countdown. Turkish language interface with a culturally authentic Ramadan menu system.
+Build a Prayer Time Reminder Progressive Web App (PWA) that displays daily prayer times with Ramadan awareness. The app should request location permission on first visit to auto-detect the user's city, with Erzincan as the default fallback.
 
-## User Choices
-- **API**: Diyanet İşleri Başkanlığı (emushaf.net) for prayer times
-- **Menu Data**: Static JSON dataset (ramadanMenus.json) - NO randomization
-- **Theme**: Teal green primary color - Dark mode default
-- **Language**: Turkish UI
-- **Default City**: Erzincan, Turkey
-- **Developer Credit**: Seyrani Kenger
-- **Deployment Target**: GitHub Pages (static hosting)
+## User Requirements (Latest - March 2026)
+1. **Default City**: Erzincan
+2. **Location Permission Flow**:
+   - On first visit, request location permission
+   - If granted: Detect user's city and save as default
+   - If denied: Use Erzincan as default
+3. **City Persistence**: When user selects a different city, save it as the new default
+4. **API**: Official Diyanet API (ezanvakti.emushaf.net)
+5. **Language**: All UI in Turkish
+6. **Design**: Do NOT modify existing design, only add functional features
 
 ## Architecture
-- **Development**: React + Tailwind CSS + Shadcn/UI (`/app/frontend/src/App.js`)
-- **Production**: Static vanilla HTML/CSS/JS (`/app/dist/`)
+- **Frontend**: React + Tailwind CSS + Shadcn/UI
 - **Prayer API**: Diyanet via ezanvakti.emushaf.net
-- **Menu Data**: Embedded MENU_DATA from JSON (deterministic, no randomization)
-- **PWA**: Service Worker + manifest.json for offline support
-- **Storage**: LocalStorage for preferences
+- **Ramadan Detection**: Aladhan API (api.aladhan.com)
+- **PWA**: Service Worker + manifest.json for offline support & notifications
+- **Storage**: LocalStorage for user preferences (city, theme, notification settings)
+- **Geolocation**: Browser Geolocation API with Haversine formula for nearest city detection
 
 ## What's Been Implemented
 
-### Version 5.0 (Feb 19, 2026) - COMPLETE
+### Version 6.0 (March 1, 2026) - Location Permission Flow
 
-**Static Menu System (From JSON Dataset):**
-- 29-day Ramadan menus loaded from `ramadanMenus.json`
-- 3-day Eid special menus
-- 5 menu categories per day: Soup, Main Dish, Side, Salad/Meze, Dessert
-- **FULLY DETERMINISTIC** - no randomization, same day = same menu
-- Works offline in PWA mode
+**Location Permission Feature:**
+- Location permission modal on first visit with "Konum İzni" title
+- "Hayır, Erzincan" button → Sets Erzincan as default
+- "Evet, Konumumu Bul" button → Uses geolocation to detect nearest city
+- Loading state while fetching location
+- City detection using Haversine formula (all 81 Turkish provinces)
+- City preference persists to localStorage
 
-**Special Menu Visual Treatments:**
-- **Day 27 (Kadir Gecesi)**: Purple/indigo gradient styling, star badge
-- **Eid Days 1-3**: Amber/gold gradient styling, sparkle badge
-- **Standard Days**: Default teal primary styling
+**City Management:**
+- All 81 Turkish provinces available in dropdown
+- City selection immediately loads new prayer times
+- Selected city automatically saved to localStorage
+- On app reload, previously selected city is restored
 
-**Period Detection:**
-- Ramadan: Feb 19 - Mar 19, 2026 (29 days)
-- Eid: Mar 20 - Mar 22, 2026 (3 days)
-- Outside periods: Shows sample Day 1 menu
+**Notification System:**
+- Notification permission prompt appears after location flow
+- Prayer time notifications via Service Worker
+- Silent mode toggle in settings
+- Friday (Jumu'ah) special notification 1 hour before Dhuhr
 
-**All Previous Features (Preserved):**
-- Live Iftar countdown (updates every second)
-- Ramadan progress bar (Day X of 29, percentage)
-- Eid celebration banner with sparkles
-- 6 prayer times grid (İmsak, Güneş, Öğle, İkindi, Akşam, Yatsı)
-- Akşam (Iftar) highlighted with pulsing green border
-- City selector (18 Turkish cities)
+**Ramadan Features:**
+- Ramadan progress bar showing current day and percentage
+- "İftar'a Kalan Süre" countdown during Ramadan
+- Akşam (Iftar time) highlighted with special styling
+- "Ramazan İmsakiyesi" button for monthly calendar
+
+**Prayer Times Grid:**
+- 6 prayer times: İmsak, Güneş, Öğle, İkindi, Akşam, Yatsı
+- Next prayer highlighted with teal border
+- Live countdown timer updating every second
+- Prayer times from official Diyanet API
+
+**Friday Features:**
+- Friday hadith section with authentic hadiths from Diyanet sources
+- Hadith of the day (deterministic based on date)
+- Special Friday notification reminder
+
+**Settings:**
 - Dark/Light theme toggle (dark default)
-- 29-day Ramadan schedule modal with Kadir Gecesi highlight
-- PWA with offline support via Service Worker
-- URL parameter & localStorage persistence
-- Footer with Diyanet and developer attribution
-- **NO advertisements or ad placeholders**
+- Notifications toggle
+- Silent mode toggle
+- Calculation method info (Diyanet)
 
-## Ramadan 2026 Dates (Official)
+## Ramadan 2026 Dates
 - Start: February 19, 2026 (1 Ramazan 1447)
 - End: March 19, 2026 (29 Ramazan 1447)
-- Kadir Gecesi: March 17, 2026 (27 Ramazan)
-- Eid: March 20-22, 2026 (3 days)
+- Current: Day 11 (March 1, 2026)
 
 ## File Structure
 ```
 /app/
 ├── frontend/
 │   ├── src/
-│   │   └── App.js              # Main React component (~1118 lines)
+│   │   └── App.js              # Main React component (~1250 lines)
 │   └── public/
-│       └── ramadanMenus.json   # Original JSON dataset
+│       ├── service-worker.js   # PWA service worker
+│       ├── manifest.json       # PWA manifest (already existed)
+│       └── icons/              # PWA icons (72-512px)
 ├── dist/                        # Static production build
 │   ├── index.html
 │   ├── style.css
-│   ├── script.js               # Embedded MENU_DATA
-│   ├── ramadanMenus.json
+│   ├── script.js
 │   ├── manifest.json
 │   ├── service-worker.js
 │   └── icons/
-└── prayer-times-pwa.zip        # Final deliverable (21KB)
+└── memory/
+    └── PRD.md                  # This file
 ```
 
-## Deployment Instructions
-1. Download `prayer-times-pwa.zip` from `/app/`
-2. Extract contents
-3. Upload all files to GitHub Pages repository
-4. Enable GitHub Pages in repository settings
-5. Access via `https://username.github.io/repo-name/`
+## API Endpoints Used
+- Prayer Times: `https://ezanvakti.emushaf.net/vakitler/{ilceId}`
+- Ramadan Detection: `https://api.aladhan.com/v1/hijriCalendar/{year}/9`
 
-## Menu Data Structure
-```json
-{
-  "ramadan_menus": [
-    { "day": 1, "type": "standard", "soup": "...", "main": "...", ... },
-    { "day": 27, "type": "kadir_gecesi_special", ... },
-    ...
-  ],
-  "eid_special_menus": [
-    { "day": 1, "type": "eid_special", ... },
-    ...
-  ]
-}
-```
+## Testing Status (March 1, 2026)
+- **Frontend Tests**: 100% pass rate (16/16 tests)
+- Location permission modal: ✅
+- Default city (Erzincan): ✅
+- City persistence: ✅
+- All 81 Turkish cities: ✅
+- Diyanet API integration: ✅
+- Countdown timer: ✅
+- Ramadan progress bar: ✅
+- Settings modal: ✅
+- Turkish UI: ✅
 
-## Testing Status
-- All 11 core features tested and passing (100% success rate)
-- Menu determinism verified across page refreshes
-- No console errors
-- Dark mode default working
-- Countdown accurate
-- Day 1 menu displays correctly: Ezogelin Çorbası, Fırın Tavuk But, Pirinç Pilavı, Çoban Salata, Güllaç
+## Prioritized Backlog
 
-## Completed - No Pending Tasks
-All requested features have been implemented and tested. The final static build is ready for deployment to GitHub Pages.
+### P0 - None (All core features complete)
+
+### P1 - Enhancements
+- Add more cities (district-level, not just provinces)
+- Add prayer time notifications sound selection
+- Add Qibla direction feature
+
+### P2 - Future Features
+- Mosque finder integration
+- Multiple city comparison view
+- Widget for mobile home screen
+- Apple Watch/Wear OS companion apps
+
+## Technical Notes
+- **Haversine Formula**: Used for calculating distance between user coordinates and city centers
+- **City Data**: All 81 Turkish provinces with lat/lng coordinates and Diyanet ilceId
+- **Caching**: Prayer times cached in localStorage with date-based keys
+- **Service Worker**: Handles notifications and offline caching
+
+## Developer
+- Developed by Seyrani Kenger
