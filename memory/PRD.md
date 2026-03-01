@@ -24,6 +24,33 @@ Build a Prayer Time Reminder Progressive Web App (PWA) that displays daily praye
 
 ## What's Been Implemented
 
+### Version 6.1 (March 1, 2026) - Functional Fixes
+
+**Prayer Name Correction:**
+- Changed "Güneş" to "Sabah" throughout the application
+- Prayer times: İmsak, Sabah, Öğle, İkindi, Akşam, Yatsı
+- Table headers updated to show "Sabah" instead of "Güneş"
+
+**Ramadan Countdown Rule:**
+- During Ramadan: Only shows countdown to Iftar (Akşam prayer)
+- Label displays "İFTAR'A KALAN SÜRE" during Ramadan
+- After Ramadan: Shows countdown to next upcoming prayer
+
+**Notification Permission Fix:**
+- Only shows error message when user explicitly denies permission
+- Silently handles dismissed or default permission states
+- Proper handling of unsupported browsers
+
+**Ramazan İmsakiyesi Button:**
+- Only visible during Ramadan (Feb 19 - Mar 19, 2026)
+- Automatically hides after March 19, 2026
+- Will appear again during Ramadan 2027 (dynamic)
+
+**Imsakiye Table:**
+- Filters to only show Ramadan dates
+- Uses isDateInRamadan() function for dynamic filtering
+- Akşam column highlighted in teal
+
 ### Version 6.0 (March 1, 2026) - Location Permission Flow
 
 **Location Permission Feature:**
