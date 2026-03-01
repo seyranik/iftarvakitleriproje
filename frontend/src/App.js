@@ -1,124 +1,93 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import "@/App.css";
-import { Sun, Moon, Sunrise, CloudSun, Sunset, Calendar, MapPin, UtensilsCrossed, Soup, Beef, Wheat, Salad, CakeSlice, Star, Sparkles } from "lucide-react";
+import { Sun, Moon, Sunrise, CloudSun, Sunset, Calendar, MapPin, Bell, BellOff, Volume2, VolumeX, Settings, X, Star, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 
 // ============================================
-// DIYANET API CONFIGURATION (emushaf.net)
+// DIYANET API CONFIGURATION
 // ============================================
 const API_BASE = "https://ezanvakti.emushaf.net";
+const ALADHAN_API = "https://api.aladhan.com/v1";
 
 // ============================================
-// STATIC MENU DATA - Embedded from JSON
-// No randomization, no modification
+// TURKISH CITIES WITH DIYANET IDS
 // ============================================
-const MENU_DATA = {
-  "ramadan_menus": [
-    { "day": 1, "type": "standard", "soup": "Ezogelin Çorbası", "main": "Fırın Tavuk But", "side": "Pirinç Pilavı", "salad_or_meze": "Çoban Salata", "dessert": "Güllaç" },
-    { "day": 2, "type": "standard", "soup": "Mercimek Çorbası", "main": "Etli Kuru Fasulye", "side": "Pirinç Pilavı", "salad_or_meze": "Turşu", "dessert": "Revani" },
-    { "day": 3, "type": "standard", "soup": "Yayla Çorbası", "main": "Karnıyarık", "side": "Bulgur Pilavı", "salad_or_meze": "Cacık", "dessert": "Kemalpaşa Tatlısı" },
-    { "day": 4, "type": "standard", "soup": "Domates Çorbası", "main": "Tas Kebabı", "side": "Şehriyeli Pirinç Pilavı", "salad_or_meze": "Mevsim Salata", "dessert": "Sütlaç" },
-    { "day": 5, "type": "standard", "soup": "Tarhana Çorbası", "main": "Fırında Köfte Patates", "side": "Yoğurtlu Makarna", "salad_or_meze": "Havuç Tarator", "dessert": "Trileçe" },
-    { "day": 6, "type": "standard", "soup": "Sebze Çorbası", "main": "Tavuk Sote", "side": "Pirinç Pilavı", "salad_or_meze": "Göbek Salata", "dessert": "Kazandibi" },
-    { "day": 7, "type": "standard", "soup": "Düğün Çorbası", "main": "İzmir Köfte", "side": "Bulgur Pilavı", "salad_or_meze": "Mor Lahana Salatası", "dessert": "Baklava" },
-    { "day": 8, "type": "standard", "soup": "Mantar Çorbası", "main": "Etli Nohut", "side": "Pirinç Pilavı", "salad_or_meze": "Turşu", "dessert": "Muhallebi" },
-    { "day": 9, "type": "standard", "soup": "Şehriye Çorbası", "main": "Ali Nazik", "side": "Fırın Patates", "salad_or_meze": "Mevsim Salata", "dessert": "Keşkül" },
-    { "day": 10, "type": "standard", "soup": "Ezogelin Çorbası", "main": "Etli Taze Fasulye", "side": "Pirinç Pilavı", "salad_or_meze": "Cacık", "dessert": "Şekerpare" },
-    { "day": 11, "type": "standard", "soup": "Yayla Çorbası", "main": "Fırın Tavuk Baget", "side": "Bulgur Pilavı", "salad_or_meze": "Çoban Salata", "dessert": "Güllaç" },
-    { "day": 12, "type": "standard", "soup": "Mercimek Çorbası", "main": "Hünkar Beğendi", "side": "Pirinç Pilavı", "salad_or_meze": "Roka Salatası", "dessert": "Kazandibi" },
-    { "day": 13, "type": "standard", "soup": "Tarhana Çorbası", "main": "Sebzeli Güveç", "side": "Şehriyeli Bulgur Pilavı", "salad_or_meze": "Yoğurtlu Salata", "dessert": "Sütlaç" },
-    { "day": 14, "type": "standard", "soup": "Domates Çorbası", "main": "Izgara Köfte", "side": "Patates Püresi", "salad_or_meze": "Çoban Salata", "dessert": "Revani" },
-    { "day": 15, "type": "standard", "soup": "Sebze Çorbası", "main": "Tavuk Şiş", "side": "Bulgur Pilavı", "salad_or_meze": "Göbek Salata", "dessert": "Trileçe" },
-    { "day": 16, "type": "standard", "soup": "Düğün Çorbası", "main": "Etli Kabak Yemeği", "side": "Pirinç Pilavı", "salad_or_meze": "Cacık", "dessert": "Kemalpaşa Tatlısı" },
-    { "day": 17, "type": "standard", "soup": "Mantar Çorbası", "main": "Sac Kavurma", "side": "Bulgur Pilavı", "salad_or_meze": "Mevsim Salata", "dessert": "Fırın Sütlaç" },
-    { "day": 18, "type": "standard", "soup": "Ezogelin Çorbası", "main": "Fırında Levrek", "side": "Zeytinyağlı Enginar", "salad_or_meze": "Roka Salatası", "dessert": "Muhallebi" },
-    { "day": 19, "type": "standard", "soup": "Yayla Çorbası", "main": "Kıymalı Ispanak", "side": "Pirinç Pilavı", "salad_or_meze": "Turşu", "dessert": "Şekerpare" },
-    { "day": 20, "type": "standard", "soup": "Mercimek Çorbası", "main": "Beşamel Soslu Tavuk", "side": "Fırın Makarna", "salad_or_meze": "Çoban Salata", "dessert": "Kazandibi" },
-    { "day": 21, "type": "standard", "soup": "Tarhana Çorbası", "main": "Etli Patlıcan Musakka", "side": "Bulgur Pilavı", "salad_or_meze": "Cacık", "dessert": "Revani" },
-    { "day": 22, "type": "standard", "soup": "Domates Çorbası", "main": "Izgara Tavuk Kanat", "side": "Pirinç Pilavı", "salad_or_meze": "Mevsim Salata", "dessert": "Güllaç" },
-    { "day": 23, "type": "standard", "soup": "Sebze Çorbası", "main": "Etli Bezelye", "side": "Pirinç Pilavı", "salad_or_meze": "Havuç Salatası", "dessert": "Süt Helvası" },
-    { "day": 24, "type": "standard", "soup": "Düğün Çorbası", "main": "İç Pilavlı Tavuk Dolması", "side": "Zeytinyağlı Yaprak Sarma", "salad_or_meze": "Mevsim Salata", "dessert": "Baklava" },
-    { "day": 25, "type": "standard", "soup": "Mantar Çorbası", "main": "Kuzu Tandır", "side": "Bulgur Pilavı", "salad_or_meze": "Roka Salatası", "dessert": "Keşkül" },
-    { "day": 26, "type": "standard", "soup": "Ezogelin Çorbası", "main": "Sebzeli Tavuk Güveç", "side": "Şehriyeli Pirinç Pilavı", "salad_or_meze": "Cacık", "dessert": "Muhallebi" },
-    { "day": 27, "type": "kadir_gecesi_special", "soup": "Bademli Tavuk Çorbası", "main": "Hünkar Beğendi", "side": "İç Pilav", "salad_or_meze": "Zeytinyağlı Yaprak Sarma", "dessert": "Nar ve Antep Fıstıklı Güllaç" },
-    { "day": 28, "type": "standard", "soup": "Mercimek Çorbası", "main": "Fırın Köfte", "side": "Patates Püresi", "salad_or_meze": "Çoban Salata", "dessert": "Revani" },
-    { "day": 29, "type": "standard", "soup": "Yayla Çorbası", "main": "Etli Kuru Fasulye", "side": "Pirinç Pilavı", "salad_or_meze": "Turşu", "dessert": "Fırın Sütlaç" }
-  ],
-  "eid_special_menus": [
-    { "day": 1, "type": "eid_special", "soup": "Mercimek Çorbası", "main": "Kurban Kavurma", "side": "Pirinç Pilavı", "salad_or_meze": "Çoban Salata", "dessert": "Baklava" },
-    { "day": 2, "type": "eid_special", "soup": "Yayla Çorbası", "main": "Fırında Tavuk Dolması", "side": "İç Pilav", "salad_or_meze": "Zeytinyağlı Yaprak Sarma", "dessert": "Şöbiyet" },
-    { "day": 3, "type": "eid_special", "soup": "Ezogelin Çorbası", "main": "Izgara Köfte", "side": "Patates Püresi", "salad_or_meze": "Rus Salatası", "dessert": "Kadayıf" }
-  ]
-};
-
-// Turkish cities with Diyanet API IDs
 const TURKISH_CITIES = [
-  { name: "Adana", displayName: "ADANA", sehirId: "500", ilceId: "9146" },
-  { name: "Ankara", displayName: "ANKARA", sehirId: "506", ilceId: "9206" },
-  { name: "Antalya", displayName: "ANTALYA", sehirId: "507", ilceId: "9225" },
-  { name: "Bursa", displayName: "BURSA", sehirId: "520", ilceId: "9335" },
-  { name: "Diyarbakır", displayName: "DİYARBAKIR", sehirId: "525", ilceId: "9381" },
-  { name: "Erzincan", displayName: "ERZİNCAN", sehirId: "529", ilceId: "9440" },
-  { name: "Erzurum", displayName: "ERZURUM", sehirId: "530", ilceId: "9450" },
-  { name: "Eskişehir", displayName: "ESKİŞEHİR", sehirId: "531", ilceId: "9470" },
-  { name: "Gaziantep", displayName: "GAZİANTEP", sehirId: "532", ilceId: "9479" },
-  { name: "İstanbul", displayName: "İSTANBUL", sehirId: "539", ilceId: "9541" },
-  { name: "İzmir", displayName: "İZMİR", sehirId: "540", ilceId: "9560" },
-  { name: "Kayseri", displayName: "KAYSERİ", sehirId: "546", ilceId: "9620" },
-  { name: "Konya", displayName: "KONYA", sehirId: "552", ilceId: "9676" },
-  { name: "Malatya", displayName: "MALATYA", sehirId: "554", ilceId: "9703" },
-  { name: "Mersin", displayName: "MERSİN", sehirId: "557", ilceId: "9737" },
-  { name: "Samsun", displayName: "SAMSUN", sehirId: "566", ilceId: "9819" },
-  { name: "Trabzon", displayName: "TRABZON", sehirId: "574", ilceId: "9901" },
-  { name: "Van", displayName: "VAN", sehirId: "577", ilceId: "9929" },
+  { name: "Adana", ilceId: "9146", lat: 37.0, lng: 35.32 },
+  { name: "Ankara", ilceId: "9206", lat: 39.93, lng: 32.86 },
+  { name: "Antalya", ilceId: "9225", lat: 36.89, lng: 30.71 },
+  { name: "Bursa", ilceId: "9335", lat: 40.19, lng: 29.06 },
+  { name: "Diyarbakır", ilceId: "9381", lat: 37.91, lng: 40.22 },
+  { name: "Erzincan", ilceId: "9440", lat: 39.75, lng: 39.49 },
+  { name: "Erzurum", ilceId: "9450", lat: 39.90, lng: 41.27 },
+  { name: "Eskişehir", ilceId: "9470", lat: 39.78, lng: 30.52 },
+  { name: "Gaziantep", ilceId: "9479", lat: 37.07, lng: 37.38 },
+  { name: "İstanbul", ilceId: "9541", lat: 41.01, lng: 28.98 },
+  { name: "İzmir", ilceId: "9560", lat: 38.42, lng: 27.14 },
+  { name: "Kayseri", ilceId: "9620", lat: 38.73, lng: 35.49 },
+  { name: "Konya", ilceId: "9676", lat: 37.87, lng: 32.48 },
+  { name: "Malatya", ilceId: "9703", lat: 38.35, lng: 38.31 },
+  { name: "Mersin", ilceId: "9737", lat: 36.80, lng: 34.64 },
+  { name: "Samsun", ilceId: "9819", lat: 41.29, lng: 36.33 },
+  { name: "Trabzon", ilceId: "9901", lat: 41.00, lng: 39.73 },
+  { name: "Van", ilceId: "9929", lat: 38.49, lng: 43.38 },
 ];
 
-// Ramadan 2026 dates for Turkey (official)
-const RAMADAN_2026 = {
-  start: new Date(2026, 1, 19), // Feb 19, 2026
-  end: new Date(2026, 2, 19),   // Mar 19, 2026 (last day of Ramadan)
-  totalDays: 29,
-  eidStart: new Date(2026, 2, 20), // Eid starts Mar 20, 2026
-  eidEnd: new Date(2026, 2, 22)    // Eid ends Mar 22, 2026 (3 days)
-};
-
-// Generate all Ramadan dates
-function generateRamadanDates() {
-  const dates = [];
-  const start = new Date(RAMADAN_2026.start);
-  const end = new Date(RAMADAN_2026.end);
-  
-  let current = new Date(start);
-  while (current <= end) {
-    dates.push({
-      date: new Date(current),
-      dateStr: `${current.getDate().toString().padStart(2, "0")}.${(current.getMonth() + 1).toString().padStart(2, "0")}.${current.getFullYear()}`,
-      dayNumber: Math.floor((current - start) / (1000 * 60 * 60 * 24)) + 1
-    });
-    current.setDate(current.getDate() + 1);
+// ============================================
+// FRIDAY HADITH COLLECTION (From Diyanet Sources)
+// ============================================
+const FRIDAY_HADITHS = [
+  {
+    text: "Günlerin en hayırlısı Cuma günüdür. Âdem o gün yaratılmış, o gün cennete konulmuş ve o gün cennetten çıkarılmıştır.",
+    source: "Müslim, Cum'a, 18",
+    reference: "Hz. Ebu Hureyre (r.a.)"
+  },
+  {
+    text: "Kim Cuma günü gusül abdesti alır, sonra camiye gider ve kılınan namazı kılar, hutbe bitinceye kadar susarsa, bu onun için iki Cuma arasındaki günahlarına kefaret olur.",
+    source: "Buhârî, Cum'a, 6",
+    reference: "Hz. Selman-ı Farisî (r.a.)"
+  },
+  {
+    text: "Cuma günü bana çok salavat getirin. Çünkü sizin salavatınız bana arz edilir.",
+    source: "Ebû Dâvûd, Salât, 201",
+    reference: "Hz. Evs b. Evs (r.a.)"
+  },
+  {
+    text: "Cuma günü öyle bir saat vardır ki, Müslüman bir kul o saatte Allah'tan bir şey isterse, Allah ona mutlaka verir.",
+    source: "Buhârî, Cum'a, 37",
+    reference: "Hz. Ebu Hureyre (r.a.)"
+  },
+  {
+    text: "Beş vakit namaz, Cuma'dan Cuma'ya, Ramazan'dan Ramazan'a, aralarındaki günahlara kefârettir; büyük günahlardan sakınıldığı takdirde.",
+    source: "Müslim, Tahâret, 16",
+    reference: "Hz. Ebu Hureyre (r.a.)"
+  },
+  {
+    text: "Kim Kehf sûresini Cuma günü okursa, iki Cuma arasını aydınlatan bir nur ona ihsan edilir.",
+    source: "Hâkim, el-Müstedrek",
+    reference: "Hz. Ebu Said el-Hudrî (r.a.)"
+  },
+  {
+    text: "Cuma günü melekler mescidin kapısında durur, gelenleri sırasıyla yazarlar. İmam minbere çıkınca defterlerini kapatırlar.",
+    source: "Buhârî, Cum'a, 31",
+    reference: "Hz. Ebu Hureyre (r.a.)"
+  },
+  {
+    text: "Cuma namazına giden kimse, her adımı için bir yıllık oruç ve bir yıllık gece namazı sevabı yazılır.",
+    source: "Tirmizî, Cum'a, 4",
+    reference: "Hz. Evs b. Evs (r.a.)"
   }
-  
-  return dates;
-}
+];
 
-const ALL_RAMADAN_DATES = generateRamadanDates();
-
-// Prayer icons mapping
-const PRAYER_ICONS = {
-  Imsak: Sunrise,
-  Gunes: Sun,
-  Ogle: Sun,
-  Ikindi: CloudSun,
-  Aksam: Sunset,
-  Yatsi: Moon
-};
-
-// Prayer display names in Turkish
+// ============================================
+// PRAYER NAMES IN TURKISH
+// ============================================
 const PRAYER_NAMES = {
   Imsak: "İmsak",
   Gunes: "Güneş",
@@ -128,171 +97,197 @@ const PRAYER_NAMES = {
   Yatsi: "Yatsı"
 };
 
+const PRAYER_ORDER = ["Imsak", "Gunes", "Ogle", "Ikindi", "Aksam", "Yatsi"];
+const MAIN_PRAYERS = ["Gunes", "Ogle", "Ikindi", "Aksam", "Yatsi"]; // For countdown (excluding Imsak)
+
+// Prayer icons
+const PRAYER_ICONS = {
+  Imsak: Sunrise,
+  Gunes: Sun,
+  Ogle: Sun,
+  Ikindi: CloudSun,
+  Aksam: Sunset,
+  Yatsi: Moon
+};
+
 // ============================================
 // UTILITY FUNCTIONS
 // ============================================
 
-// Parse time string (HH:MM) to Date object for today
-function parseTimeToDate(timeStr) {
+function parseTimeToDate(timeStr, baseDate = new Date()) {
   if (!timeStr) return null;
   const [hours, minutes] = timeStr.split(":").map(Number);
-  const date = new Date();
+  const date = new Date(baseDate);
   date.setHours(hours, minutes, 0, 0);
   return date;
 }
 
-// Format countdown from milliseconds
 function formatCountdown(ms) {
   if (ms <= 0) return { hours: "00", minutes: "00", seconds: "00", total: 0 };
-  
   const totalSeconds = Math.floor(ms / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  
   return {
-    hours: hours.toString().padStart(2, "0"),
-    minutes: minutes.toString().padStart(2, "0"),
-    seconds: seconds.toString().padStart(2, "0"),
+    hours: String(Math.floor(totalSeconds / 3600)).padStart(2, "0"),
+    minutes: String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, "0"),
+    seconds: String(totalSeconds % 60).padStart(2, "0"),
     total: totalSeconds
   };
 }
 
-// Check if date is within Ramadan 2026
-function isDateInRamadan(date) {
-  const checkDate = new Date(date);
-  checkDate.setHours(0, 0, 0, 0);
-  
-  const start = new Date(RAMADAN_2026.start);
-  start.setHours(0, 0, 0, 0);
-  
-  const end = new Date(RAMADAN_2026.end);
-  end.setHours(23, 59, 59, 999);
-  
-  return checkDate >= start && checkDate <= end;
+function getTodayString() {
+  const t = new Date();
+  return `${String(t.getDate()).padStart(2, "0")}.${String(t.getMonth() + 1).padStart(2, "0")}.${t.getFullYear()}`;
 }
 
-// Check if date is within Eid period
-function isDateInEid(date) {
-  const checkDate = new Date(date);
-  checkDate.setHours(0, 0, 0, 0);
-  
-  const start = new Date(RAMADAN_2026.eidStart);
-  start.setHours(0, 0, 0, 0);
-  
-  const end = new Date(RAMADAN_2026.eidEnd);
-  end.setHours(23, 59, 59, 999);
-  
-  return checkDate >= start && checkDate <= end;
+function isFriday() {
+  return new Date().getDay() === 5;
 }
 
-// Get Ramadan day number for a given date
-function getRamadanDayNumber(date) {
-  if (!isDateInRamadan(date)) return null;
-  
-  const checkDate = new Date(date);
-  checkDate.setHours(0, 0, 0, 0);
-  
-  const start = new Date(RAMADAN_2026.start);
-  start.setHours(0, 0, 0, 0);
-  
-  const diffTime = checkDate - start;
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  
-  return diffDays + 1;
+function getDayOfWeekTurkish() {
+  const days = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+  return days[new Date().getDay()];
 }
 
-// Get Eid day number for a given date
-function getEidDayNumber(date) {
-  if (!isDateInEid(date)) return null;
-  
-  const checkDate = new Date(date);
-  checkDate.setHours(0, 0, 0, 0);
-  
-  const start = new Date(RAMADAN_2026.eidStart);
-  start.setHours(0, 0, 0, 0);
-  
-  const diffTime = checkDate - start;
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  
-  return diffDays + 1;
-}
-
-// Get current period info (Ramadan, Eid, or neither)
-function getPeriodInfo() {
+function getRandomHadith() {
   const today = new Date();
-  
-  if (isDateInRamadan(today)) {
-    const dayOfRamadan = getRamadanDayNumber(today);
-    const totalDays = RAMADAN_2026.totalDays;
-    const progress = (dayOfRamadan / totalDays) * 100;
-    
-    return {
-      period: "ramadan",
-      isRamadan: true,
-      isEid: false,
-      dayOfRamadan,
-      totalDays,
-      progress
-    };
-  }
-  
-  if (isDateInEid(today)) {
-    const dayOfEid = getEidDayNumber(today);
-    
-    return {
-      period: "eid",
-      isRamadan: false,
-      isEid: true,
-      dayOfEid,
-      totalEidDays: 3
-    };
-  }
-  
-  return { period: "none", isRamadan: false, isEid: false };
+  const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+  const index = seed % FRIDAY_HADITHS.length;
+  return FRIDAY_HADITHS[index];
 }
 
-// Get menu for current day - DETERMINISTIC, NO RANDOMIZATION
-function getCurrentMenu(periodInfo) {
-  if (periodInfo.isRamadan && periodInfo.dayOfRamadan >= 1 && periodInfo.dayOfRamadan <= 29) {
-    return MENU_DATA.ramadan_menus[periodInfo.dayOfRamadan - 1];
+// ============================================
+// RAMADAN DETECTION
+// ============================================
+
+async function fetchRamadanDates() {
+  const cacheKey = "ramadan-dates-cache";
+  const cached = localStorage.getItem(cacheKey);
+  
+  if (cached) {
+    try {
+      const data = JSON.parse(cached);
+      if (data.expiry > Date.now()) {
+        return data;
+      }
+    } catch (e) {
+      localStorage.removeItem(cacheKey);
+    }
   }
   
-  if (periodInfo.isEid && periodInfo.dayOfEid >= 1 && periodInfo.dayOfEid <= 3) {
-    return MENU_DATA.eid_special_menus[periodInfo.dayOfEid - 1];
+  try {
+    const currentYear = new Date().getFullYear();
+    const response = await fetch(`${ALADHAN_API}/hijriCalendar/${currentYear}/9?adjustment=1`);
+    const data = await response.json();
+    
+    if (data.code === 200 && data.data && data.data.length > 0) {
+      const firstDay = data.data[0];
+      const lastDay = data.data[data.data.length - 1];
+      
+      const result = {
+        currentRamadan: {
+          start: firstDay.gregorian.date,
+          end: lastDay.gregorian.date,
+          year: currentYear
+        },
+        expiry: Date.now() + (24 * 60 * 60 * 1000) // Cache for 24 hours
+      };
+      
+      localStorage.setItem(cacheKey, JSON.stringify(result));
+      return result;
+    }
+  } catch (e) {
+    console.error("Failed to fetch Ramadan dates:", e);
   }
   
-  // Default to Day 1 Ramadan menu for preview
-  return MENU_DATA.ramadan_menus[0];
+  // Fallback: Ramadan 2026 dates
+  return {
+    currentRamadan: {
+      start: "19-02-2026",
+      end: "19-03-2026",
+      year: 2026
+    },
+    expiry: Date.now() + (24 * 60 * 60 * 1000)
+  };
 }
 
-// Get menu type display info
-function getMenuTypeInfo(menuType) {
-  switch (menuType) {
-    case "kadir_gecesi_special":
-      return {
-        label: "Kadir Gecesi Özel",
-        badgeClass: "bg-gradient-to-r from-purple-600 to-indigo-600",
-        cardClass: "ring-2 ring-purple-500/50 bg-gradient-to-br from-purple-900/20 to-indigo-900/20",
-        icon: Star,
-        iconClass: "text-purple-400"
-      };
-    case "eid_special":
-      return {
-        label: "Bayram Özel",
-        badgeClass: "bg-gradient-to-r from-amber-500 to-orange-500",
-        cardClass: "ring-2 ring-amber-500/50 bg-gradient-to-br from-amber-900/20 to-orange-900/20",
-        icon: Sparkles,
-        iconClass: "text-amber-400"
-      };
-    default:
-      return {
-        label: null,
-        badgeClass: "bg-primary",
-        cardClass: "",
-        icon: null,
-        iconClass: ""
-      };
+function parseAladhanDate(dateStr) {
+  const parts = dateStr.split("-");
+  return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+}
+
+function isDateInRamadan(date, ramadanDates) {
+  if (!ramadanDates || !ramadanDates.currentRamadan) return false;
+  
+  const checkDate = new Date(date);
+  checkDate.setHours(0, 0, 0, 0);
+  
+  const start = parseAladhanDate(ramadanDates.currentRamadan.start);
+  start.setHours(0, 0, 0, 0);
+  
+  const end = parseAladhanDate(ramadanDates.currentRamadan.end);
+  end.setHours(23, 59, 59, 999);
+  
+  return checkDate >= start && checkDate <= end;
+}
+
+function getRamadanDayNumber(date, ramadanDates) {
+  if (!isDateInRamadan(date, ramadanDates)) return null;
+  
+  const checkDate = new Date(date);
+  checkDate.setHours(0, 0, 0, 0);
+  
+  const start = parseAladhanDate(ramadanDates.currentRamadan.start);
+  start.setHours(0, 0, 0, 0);
+  
+  return Math.floor((checkDate - start) / (1000 * 60 * 60 * 24)) + 1;
+}
+
+// ============================================
+// NOTIFICATION SYSTEM
+// ============================================
+
+async function requestNotificationPermission() {
+  if (!("Notification" in window)) {
+    return "unsupported";
+  }
+  
+  if (Notification.permission === "granted") {
+    return "granted";
+  }
+  
+  if (Notification.permission !== "denied") {
+    const permission = await Notification.requestPermission();
+    return permission;
+  }
+  
+  return "denied";
+}
+
+function sendNotification(title, body, options = {}) {
+  if (Notification.permission !== "granted") return;
+  
+  const settings = JSON.parse(localStorage.getItem("prayer-settings") || "{}");
+  
+  const notificationOptions = {
+    body,
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    tag: options.tag || "prayer-notification",
+    renotify: true,
+    ...options
+  };
+  
+  if (settings.silentMode) {
+    notificationOptions.silent = true;
+  }
+  
+  if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({
+      type: "SHOW_NOTIFICATION",
+      title,
+      options: notificationOptions
+    });
+  } else {
+    new Notification(title, notificationOptions);
   }
 }
 
@@ -305,324 +300,236 @@ function App() {
   const [city, setCity] = useState(null);
   const [prayerTimes, setPrayerTimes] = useState(null);
   const [monthlyData, setMonthlyData] = useState([]);
-  const [fullRamadanData, setFullRamadanData] = useState([]);
-  const [periodInfo, setPeriodInfo] = useState({ period: "none", isRamadan: false, isEid: false });
-  const [countdown, setCountdown] = useState({ hours: "00", minutes: "00", seconds: "00", total: 0 });
   const [loading, setLoading] = useState(true);
   const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [iftarPassed, setIftarPassed] = useState(false);
-  const [currentMenu, setCurrentMenu] = useState(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   
-  // Refs for interval management
+  // Ramadan state
+  const [ramadanDates, setRamadanDates] = useState(null);
+  const [isRamadan, setIsRamadan] = useState(false);
+  const [ramadanDay, setRamadanDay] = useState(null);
+  const [ramadanProgress, setRamadanProgress] = useState(0);
+  
+  // Countdown state
+  const [countdown, setCountdown] = useState({ hours: "00", minutes: "00", seconds: "00" });
+  const [nextPrayer, setNextPrayer] = useState(null);
+  const [countdownLabel, setCountdownLabel] = useState("Sonraki Namaza Kalan Süre");
+  
+  // Settings state
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [silentMode, setSilentMode] = useState(false);
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  
+  // Friday state
+  const [todayIsFriday, setTodayIsFriday] = useState(false);
+  const [fridayHadith, setFridayHadith] = useState(null);
+  
+  // Refs
   const countdownIntervalRef = useRef(null);
-  const dateCheckIntervalRef = useRef(null);
+  const notificationCheckRef = useRef(null);
+  const lastNotifiedPrayerRef = useRef(null);
 
   // ============================================
-  // THEME INITIALIZATION - Dark mode by default
+  // INITIALIZATION
   // ============================================
+  
   useEffect(() => {
-    const savedTheme = localStorage.getItem("prayer-theme");
-    if (savedTheme) {
-      setTheme(savedTheme);
-    } else {
-      setTheme("dark");
-      localStorage.setItem("prayer-theme", "dark");
+    // Load theme
+    const savedTheme = localStorage.getItem("prayer-theme") || "dark";
+    setTheme(savedTheme);
+    document.documentElement.classList.remove("light", "dark");
+    document.documentElement.classList.add(savedTheme);
+    
+    // Load settings
+    const settings = JSON.parse(localStorage.getItem("prayer-settings") || "{}");
+    setNotificationsEnabled(settings.notificationsEnabled || false);
+    setSilentMode(settings.silentMode || false);
+    
+    // Check if notification prompt was shown
+    const promptShown = localStorage.getItem("notification-prompt-shown");
+    if (!promptShown && "Notification" in window) {
+      setShowNotificationPrompt(true);
+    }
+    
+    // Check Friday
+    setTodayIsFriday(isFriday());
+    if (isFriday()) {
+      setFridayHadith(getRandomHadith());
+    }
+    
+    // Fetch Ramadan dates
+    fetchRamadanDates().then(dates => {
+      setRamadanDates(dates);
+      const inRamadan = isDateInRamadan(new Date(), dates);
+      setIsRamadan(inRamadan);
+      if (inRamadan) {
+        const day = getRamadanDayNumber(new Date(), dates);
+        setRamadanDay(day);
+        setRamadanProgress((day / 29) * 100);
+      }
+    });
+    
+    // Register service worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/service-worker.js").catch(e => {
+        console.log("SW registration failed:", e);
+      });
     }
   }, []);
 
-  // Apply theme to document
+  // ============================================
+  // THEME
+  // ============================================
+  
   useEffect(() => {
     document.documentElement.classList.remove("light", "dark");
     document.documentElement.classList.add(theme);
     localStorage.setItem("prayer-theme", theme);
   }, [theme]);
 
-  // ============================================
-  // PERIOD & MENU INITIALIZATION
-  // ============================================
-  useEffect(() => {
-    const info = getPeriodInfo();
-    setPeriodInfo(info);
-    setCurrentMenu(getCurrentMenu(info));
+  const toggleTheme = useCallback(() => {
+    setTheme(prev => prev === "light" ? "dark" : "light");
   }, []);
 
   // ============================================
-  // CITY INITIALIZATION
+  // CITY MANAGEMENT
   // ============================================
+  
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlCity = urlParams.get("city");
-    
-    if (urlCity) {
-      const found = TURKISH_CITIES.find(c => 
-        c.name.toLowerCase() === urlCity.toLowerCase() ||
-        c.displayName.toLowerCase() === urlCity.toLowerCase()
-      );
-      if (found) {
-        setCity(found);
-        localStorage.setItem("prayer-city", JSON.stringify(found));
-        return;
-      }
-    }
-    
     const savedCity = localStorage.getItem("prayer-city");
     if (savedCity) {
       try {
-        const parsed = JSON.parse(savedCity);
-        if (parsed.ilceId) {
-          setCity(parsed);
+        const c = JSON.parse(savedCity);
+        if (c.ilceId) {
+          setCity(c);
           return;
         }
-      } catch (e) {
-        console.error("Failed to parse saved city");
-      }
+      } catch (e) {}
     }
-    
-    const defaultCity = TURKISH_CITIES.find(c => c.name === "Erzincan") || TURKISH_CITIES[0];
-    setCity(defaultCity);
-    localStorage.setItem("prayer-city", JSON.stringify(defaultCity));
+    setCity(TURKISH_CITIES.find(c => c.name === "Erzincan") || TURKISH_CITIES[0]);
+  }, []);
+
+  const handleCityChange = useCallback((cityName) => {
+    const newCity = TURKISH_CITIES.find(c => c.name === cityName);
+    if (newCity) {
+      setPrayerTimes(null);
+      setMonthlyData([]);
+      setCity(newCity);
+      localStorage.setItem("prayer-city", JSON.stringify(newCity));
+    }
   }, []);
 
   // ============================================
-  // FETCH PRAYER TIMES FROM DIYANET API
+  // FETCH PRAYER TIMES
   // ============================================
+  
   const fetchPrayerTimes = useCallback(async (selectedCity) => {
-    if (!selectedCity || !selectedCity.ilceId) return;
-    
+    if (!selectedCity) return;
     setLoading(true);
     
     try {
-      const today = new Date();
-      const cacheKey = `diyanet-times-${selectedCity.ilceId}-${today.toDateString()}`;
+      const cacheKey = `diyanet-${selectedCity.ilceId}-${new Date().toDateString()}`;
       const cached = localStorage.getItem(cacheKey);
       
       if (cached) {
-        try {
-          const data = JSON.parse(cached);
-          processApiData(data, today);
-          setLoading(false);
-          return;
-        } catch (e) {
-          localStorage.removeItem(cacheKey);
-        }
+        const data = JSON.parse(cached);
+        processApiData(data);
+        setLoading(false);
+        return;
       }
       
       const response = await fetch(`${API_BASE}/vakitler/${selectedCity.ilceId}`);
-      
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
+      if (!response.ok) throw new Error("API error");
       
       const data = await response.json();
-      
-      if (!data || data.length === 0) {
-        throw new Error("No data received from API");
-      }
+      if (!data || !data.length) throw new Error("No data");
       
       localStorage.setItem(cacheKey, JSON.stringify(data));
-      processApiData(data, today);
-      
-    } catch (error) {
-      console.error("Failed to fetch prayer times:", error);
-      toast.error("Namaz vakitleri alınamadı. Lütfen tekrar deneyin.");
-      
-      const fallbackKey = `diyanet-times-${selectedCity.ilceId}`;
-      const fallback = localStorage.getItem(fallbackKey);
-      if (fallback) {
-        try {
-          const data = JSON.parse(fallback);
-          processApiData(data, new Date());
-          toast.info("Önbellek verileri kullanılıyor.");
-        } catch (e) {
-          // No fallback available
-        }
-      }
+      processApiData(data);
+    } catch (e) {
+      console.error("Fetch error:", e);
+      toast.error("Namaz vakitleri alınamadı");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Process API data and update state
-  const processApiData = useCallback((data, today) => {
+  const processApiData = useCallback((data) => {
     setMonthlyData(data);
     
-    const todayStr = `${today.getDate().toString().padStart(2, "0")}.${(today.getMonth() + 1).toString().padStart(2, "0")}.${today.getFullYear()}`;
+    const todayStr = getTodayString();
+    const todayData = data.find(d => d.MiladiTarihKisa === todayStr) || data[0];
     
-    const todayData = data.find(day => day.MiladiTarihKisa === todayStr);
-    
-    if (todayData) {
-      setPrayerTimes({
-        Imsak: todayData.Imsak,
-        Gunes: todayData.Gunes,
-        Ogle: todayData.Ogle,
-        Ikindi: todayData.Ikindi,
-        Aksam: todayData.Aksam,
-        Yatsi: todayData.Yatsi,
-        raw: todayData
-      });
-    } else if (data.length > 0) {
-      const firstDay = data[0];
-      setPrayerTimes({
-        Imsak: firstDay.Imsak,
-        Gunes: firstDay.Gunes,
-        Ogle: firstDay.Ogle,
-        Ikindi: firstDay.Ikindi,
-        Aksam: firstDay.Aksam,
-        Yatsi: firstDay.Yatsi,
-        raw: firstDay
-      });
-    }
-    
-    // Update period info
-    const info = getPeriodInfo();
-    setPeriodInfo(info);
-    setCurrentMenu(getCurrentMenu(info));
-    
-    // Extract Ramadan days from current data
-    if (info.isRamadan) {
-      const ramadanDays = data.filter(day => {
-        const parts = day.MiladiTarihKisa.split(".");
-        if (parts.length === 3) {
-          const date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-          return isDateInRamadan(date);
-        }
-        return false;
-      });
-      setFullRamadanData(ramadanDays);
-    }
+    setPrayerTimes({
+      Imsak: todayData.Imsak,
+      Gunes: todayData.Gunes,
+      Ogle: todayData.Ogle,
+      Ikindi: todayData.Ikindi,
+      Aksam: todayData.Aksam,
+      Yatsi: todayData.Yatsi
+    });
   }, []);
 
-  // Fetch times when city changes
   useEffect(() => {
     if (city) {
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current);
-        countdownIntervalRef.current = null;
-      }
-      
-      setPrayerTimes(null);
-      setCountdown({ hours: "00", minutes: "00", seconds: "00", total: 0 });
-      setIftarPassed(false);
-      
       fetchPrayerTimes(city);
     }
   }, [city, fetchPrayerTimes]);
 
   // ============================================
-  // FETCH FULL RAMADAN DATA
+  // COUNTDOWN LOGIC
   // ============================================
-  const fetchFullRamadanSchedule = useCallback(async () => {
-    if (!city || !city.ilceId) return [];
-    
-    const cacheKey = `ramadan-full-${city.ilceId}-2026`;
-    const cached = localStorage.getItem(cacheKey);
-    
-    if (cached) {
-      try {
-        const data = JSON.parse(cached);
-        if (data.length >= 28) {
-          setFullRamadanData(data);
-          return data;
-        }
-      } catch (e) {
-        localStorage.removeItem(cacheKey);
-      }
-    }
-    
-    try {
-      const response = await fetch(`${API_BASE}/vakitler/${city.ilceId}`);
-      if (!response.ok) throw new Error("API error");
-      
-      const data = await response.json();
-      
-      const apiDataMap = {};
-      data.forEach(day => {
-        apiDataMap[day.MiladiTarihKisa] = day;
-      });
-      
-      const completeRamadanData = ALL_RAMADAN_DATES.map(ramadanDate => {
-        const apiDay = apiDataMap[ramadanDate.dateStr];
-        
-        if (apiDay) {
-          return {
-            ...apiDay,
-            ramadanDay: ramadanDate.dayNumber
-          };
-        } else {
-          return {
-            MiladiTarihKisa: ramadanDate.dateStr,
-            Imsak: "--:--",
-            Gunes: "--:--",
-            Ogle: "--:--",
-            Ikindi: "--:--",
-            Aksam: "--:--",
-            Yatsi: "--:--",
-            ramadanDay: ramadanDate.dayNumber,
-            isPlaceholder: true
-          };
-        }
-      });
-      
-      localStorage.setItem(cacheKey, JSON.stringify(completeRamadanData));
-      setFullRamadanData(completeRamadanData);
-      
-      return completeRamadanData;
-    } catch (error) {
-      console.error("Failed to fetch Ramadan schedule:", error);
-      return fullRamadanData;
-    }
-  }, [city, fullRamadanData]);
-
-  // ============================================
-  // COUNTDOWN TIMER
-  // ============================================
+  
   useEffect(() => {
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
-      countdownIntervalRef.current = null;
     }
     
-    if (!prayerTimes || !prayerTimes.Aksam) return;
+    if (!prayerTimes) return;
     
     const updateCountdown = () => {
       const now = new Date();
-      const aksamTime = parseTimeToDate(prayerTimes.Aksam);
-      const yatsiTime = parseTimeToDate(prayerTimes.Yatsi);
+      let targetPrayer = null;
+      let targetTime = null;
+      let minDiff = Infinity;
       
-      if (!aksamTime || !yatsiTime) return;
-      
-      let diff = aksamTime - now;
-      
-      if (diff <= 0 && now < yatsiTime) {
-        setIftarPassed(true);
-        setCountdown({ hours: "00", minutes: "00", seconds: "00", total: 0 });
-      } else if (now >= yatsiTime) {
-        setIftarPassed(false);
+      // Find next prayer
+      for (const prayer of MAIN_PRAYERS) {
+        const prayerTime = parseTimeToDate(prayerTimes[prayer]);
+        if (!prayerTime) continue;
         
+        const diff = prayerTime - now;
+        if (diff > 0 && diff < minDiff) {
+          minDiff = diff;
+          targetPrayer = prayer;
+          targetTime = prayerTime;
+        }
+      }
+      
+      // If no prayer left today, get first prayer of tomorrow
+      if (!targetPrayer) {
         const tomorrow = new Date(now);
         tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowStr = `${tomorrow.getDate().toString().padStart(2, "0")}.${(tomorrow.getMonth() + 1).toString().padStart(2, "0")}.${tomorrow.getFullYear()}`;
-        
-        const tomorrowData = monthlyData.find(day => day.MiladiTarihKisa === tomorrowStr);
+        const tomorrowStr = `${String(tomorrow.getDate()).padStart(2, "0")}.${String(tomorrow.getMonth() + 1).padStart(2, "0")}.${tomorrow.getFullYear()}`;
+        const tomorrowData = monthlyData.find(d => d.MiladiTarihKisa === tomorrowStr);
         
         if (tomorrowData) {
-          const tomorrowAksam = parseTimeToDate(tomorrowData.Aksam);
-          if (tomorrowAksam) {
-            tomorrowAksam.setDate(tomorrow.getDate());
-            tomorrowAksam.setMonth(tomorrow.getMonth());
-            tomorrowAksam.setFullYear(tomorrow.getFullYear());
-            diff = tomorrowAksam - now;
-          }
-        } else {
-          const nextAksam = new Date(aksamTime);
-          nextAksam.setDate(nextAksam.getDate() + 1);
-          diff = nextAksam - now;
+          targetPrayer = "Gunes"; // First prayer after Imsak
+          targetTime = parseTimeToDate(tomorrowData.Gunes, tomorrow);
+          minDiff = targetTime - now;
         }
+      }
+      
+      if (targetPrayer && targetTime) {
+        setNextPrayer(targetPrayer);
+        setCountdown(formatCountdown(minDiff));
         
-        setCountdown(formatCountdown(diff));
-      } else {
-        setIftarPassed(false);
-        setCountdown(formatCountdown(diff));
+        // Set countdown label based on Ramadan and prayer
+        if (isRamadan && targetPrayer === "Aksam") {
+          setCountdownLabel("İftar'a Kalan Süre");
+        } else {
+          setCountdownLabel(`${PRAYER_NAMES[targetPrayer]} Namazına Kalan Süre`);
+        }
       }
     };
     
@@ -632,375 +539,352 @@ function App() {
     return () => {
       if (countdownIntervalRef.current) {
         clearInterval(countdownIntervalRef.current);
-        countdownIntervalRef.current = null;
       }
     };
-  }, [prayerTimes, monthlyData]);
+  }, [prayerTimes, monthlyData, isRamadan]);
+
+  // ============================================
+  // NOTIFICATION SCHEDULING
+  // ============================================
+  
+  useEffect(() => {
+    if (!notificationsEnabled || !prayerTimes) return;
+    
+    if (notificationCheckRef.current) {
+      clearInterval(notificationCheckRef.current);
+    }
+    
+    const checkNotifications = () => {
+      const now = new Date();
+      const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+      
+      // Check each prayer time
+      for (const prayer of PRAYER_ORDER) {
+        if (prayerTimes[prayer] === currentTime && lastNotifiedPrayerRef.current !== `${prayer}-${currentTime}`) {
+          lastNotifiedPrayerRef.current = `${prayer}-${currentTime}`;
+          
+          let title = `${PRAYER_NAMES[prayer]} Vakti`;
+          let body = `${PRAYER_NAMES[prayer]} namazı vakti girdi.`;
+          
+          if (isRamadan && prayer === "Aksam") {
+            title = "İftar Vakti";
+            body = "İftar vakti girdi. Hayırlı iftarlar!";
+          } else if (isRamadan && prayer === "Imsak") {
+            title = "İmsak Vakti";
+            body = "Sahur vakti sona erdi. Hayırlı oruçlar!";
+          }
+          
+          sendNotification(title, body, { tag: `prayer-${prayer}` });
+        }
+      }
+      
+      // Friday notification - 1 hour before Dhuhr
+      if (isFriday() && prayerTimes.Ogle) {
+        const ogleTime = parseTimeToDate(prayerTimes.Ogle);
+        const oneHourBefore = new Date(ogleTime.getTime() - 60 * 60 * 1000);
+        const reminderTime = `${String(oneHourBefore.getHours()).padStart(2, "0")}:${String(oneHourBefore.getMinutes()).padStart(2, "0")}`;
+        
+        if (currentTime === reminderTime && lastNotifiedPrayerRef.current !== `friday-${reminderTime}`) {
+          lastNotifiedPrayerRef.current = `friday-${reminderTime}`;
+          const hadith = getRandomHadith();
+          sendNotification(
+            "Cuma Günü Hatırlatması",
+            `Bugün Cuma günü. Cuma namazına hazırlanın.\n\n"${hadith.text.substring(0, 100)}..."`,
+            { tag: "friday-reminder" }
+          );
+        }
+      }
+    };
+    
+    checkNotifications();
+    notificationCheckRef.current = setInterval(checkNotifications, 30000); // Check every 30 seconds
+    
+    return () => {
+      if (notificationCheckRef.current) {
+        clearInterval(notificationCheckRef.current);
+      }
+    };
+  }, [notificationsEnabled, prayerTimes, isRamadan]);
+
+  // ============================================
+  // SETTINGS HANDLERS
+  // ============================================
+  
+  const handleNotificationToggle = async (enabled) => {
+    if (enabled) {
+      const permission = await requestNotificationPermission();
+      if (permission === "granted") {
+        setNotificationsEnabled(true);
+        const settings = JSON.parse(localStorage.getItem("prayer-settings") || "{}");
+        settings.notificationsEnabled = true;
+        localStorage.setItem("prayer-settings", JSON.stringify(settings));
+        toast.success("Bildirimler etkinleştirildi");
+      } else {
+        toast.error("Bildirim izni verilmedi");
+      }
+    } else {
+      setNotificationsEnabled(false);
+      const settings = JSON.parse(localStorage.getItem("prayer-settings") || "{}");
+      settings.notificationsEnabled = false;
+      localStorage.setItem("prayer-settings", JSON.stringify(settings));
+      toast.info("Bildirimler devre dışı bırakıldı");
+    }
+  };
+
+  const handleSilentModeToggle = (enabled) => {
+    setSilentMode(enabled);
+    const settings = JSON.parse(localStorage.getItem("prayer-settings") || "{}");
+    settings.silentMode = enabled;
+    localStorage.setItem("prayer-settings", JSON.stringify(settings));
+    toast.info(enabled ? "Sessiz mod etkinleştirildi" : "Sessiz mod devre dışı");
+  };
+
+  const handleNotificationPrompt = async (accept) => {
+    localStorage.setItem("notification-prompt-shown", "true");
+    setShowNotificationPrompt(false);
+    
+    if (accept) {
+      await handleNotificationToggle(true);
+    }
+  };
 
   // ============================================
   // DATE CHANGE CHECK
   // ============================================
+  
   useEffect(() => {
-    if (dateCheckIntervalRef.current) {
-      clearInterval(dateCheckIntervalRef.current);
-    }
-    
     let lastDate = new Date().toDateString();
     
     const checkDateChange = () => {
       const currentDate = new Date().toDateString();
       if (currentDate !== lastDate) {
         lastDate = currentDate;
-        if (city) {
-          fetchPrayerTimes(city);
+        
+        // Refresh data
+        if (city) fetchPrayerTimes(city);
+        
+        // Update Friday status
+        setTodayIsFriday(isFriday());
+        if (isFriday()) {
+          setFridayHadith(getRandomHadith());
+        } else {
+          setFridayHadith(null);
         }
-        const info = getPeriodInfo();
-        setPeriodInfo(info);
-        setCurrentMenu(getCurrentMenu(info));
+        
+        // Update Ramadan status
+        if (ramadanDates) {
+          const inRamadan = isDateInRamadan(new Date(), ramadanDates);
+          setIsRamadan(inRamadan);
+          if (inRamadan) {
+            const day = getRamadanDayNumber(new Date(), ramadanDates);
+            setRamadanDay(day);
+            setRamadanProgress((day / 29) * 100);
+          }
+        }
+        
+        // Reset notification tracker
+        lastNotifiedPrayerRef.current = null;
       }
     };
     
-    dateCheckIntervalRef.current = setInterval(checkDateChange, 60000);
-    
-    return () => {
-      if (dateCheckIntervalRef.current) {
-        clearInterval(dateCheckIntervalRef.current);
-      }
-    };
-  }, [city, fetchPrayerTimes]);
-
-  // ============================================
-  // EVENT HANDLERS
-  // ============================================
-  const handleCityChange = useCallback((cityName) => {
-    const newCity = TURKISH_CITIES.find(c => c.name === cityName);
-    if (newCity) {
-      setPrayerTimes(null);
-      setMonthlyData([]);
-      setFullRamadanData([]);
-      setCity(newCity);
-      localStorage.setItem("prayer-city", JSON.stringify(newCity));
-    }
-  }, []);
-
-  const toggleTheme = useCallback(() => {
-    setTheme(prev => {
-      const newTheme = prev === "light" ? "dark" : "light";
-      localStorage.setItem("prayer-theme", newTheme);
-      return newTheme;
-    });
-  }, []);
-
-  const handleScheduleOpen = useCallback(() => {
-    setScheduleOpen(true);
-    fetchFullRamadanSchedule();
-  }, [fetchFullRamadanSchedule]);
-
-  // Get menu type styling
-  const menuTypeInfo = currentMenu ? getMenuTypeInfo(currentMenu.type) : getMenuTypeInfo("standard");
-
-  // Prayer order for display
-  const prayerOrder = ["Imsak", "Gunes", "Ogle", "Ikindi", "Aksam", "Yatsi"];
+    const interval = setInterval(checkDateChange, 60000);
+    return () => clearInterval(interval);
+  }, [city, fetchPrayerTimes, ramadanDates]);
 
   // ============================================
   // RENDER
   // ============================================
+  
   return (
     <div className="min-h-screen bg-background transition-colors duration-500" data-testid="prayer-app">
       <Toaster position="top-center" richColors />
       
+      {/* Notification Permission Prompt */}
+      {showNotificationPrompt && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-2xl p-6 max-w-md w-full shadow-xl animate-fade-in-up">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                <Bell className="w-6 h-6 text-primary" />
+              </div>
+              <h2 className="text-xl font-medium">Bildirim İzni</h2>
+            </div>
+            <p className="text-muted-foreground mb-6">
+              Namaz vakitlerinde bildirim almak ister misiniz? Vakitler girdiğinde size hatırlatma yapılacaktır.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => handleNotificationPrompt(false)}
+              >
+                Hayır, teşekkürler
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => handleNotificationPrompt(true)}
+              >
+                Evet, etkinleştir
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Ramadan Progress Bar */}
-      {periodInfo.isRamadan && (
+      {isRamadan && (
         <div className="fixed top-0 left-0 right-0 z-50" data-testid="ramadan-progress">
-          <Progress value={periodInfo.progress} className="h-1 rounded-none" />
+          <Progress value={ramadanProgress} className="h-1 rounded-none" />
           <div className="bg-primary/10 backdrop-blur-sm py-2 px-4 text-center">
             <span className="text-sm font-medium text-primary">
-              Ramazan'ın {periodInfo.dayOfRamadan}. günü — %{Math.round(periodInfo.progress)}
+              Ramazan'ın {ramadanDay}. günü — %{Math.round(ramadanProgress)}
             </span>
           </div>
         </div>
       )}
       
-      {/* Eid Banner */}
-      {periodInfo.isEid && (
-        <div className="fixed top-0 left-0 right-0 z-50" data-testid="eid-banner">
-          <div className="bg-gradient-to-r from-amber-500 to-orange-500 py-3 px-4 text-center">
-            <span className="text-sm font-bold text-white flex items-center justify-center gap-2">
-              <Sparkles className="w-4 h-4" />
-              Ramazan Bayramı'nın {periodInfo.dayOfEid}. Günü — Bayramınız Mübarek Olsun!
-              <Sparkles className="w-4 h-4" />
-            </span>
-          </div>
-        </div>
-      )}
-      
-      <div className={`container mx-auto px-4 md:px-8 py-8 max-w-5xl ${periodInfo.isRamadan || periodInfo.isEid ? "pt-16" : ""}`}>
+      <div className={`container mx-auto px-4 md:px-8 py-8 max-w-5xl ${isRamadan ? "pt-16" : ""}`}>
         {/* Header */}
-        <header className="flex items-center justify-between mb-12 animate-fade-in-up">
-          {/* City Selector */}
+        <header className="flex items-center justify-between mb-8 animate-fade-in-up">
           <div className="flex items-center gap-2">
             <MapPin className="w-5 h-5 text-primary opacity-70" />
             <Select value={city?.name || ""} onValueChange={handleCityChange}>
-              <SelectTrigger 
-                className="bg-transparent border-none text-xl md:text-2xl font-light hover:bg-transparent hover:text-primary focus:ring-0 focus:ring-offset-0 px-0 shadow-none gap-2 w-auto"
-                data-testid="city-selector"
-              >
+              <SelectTrigger className="bg-transparent border-none text-xl md:text-2xl font-light hover:bg-transparent hover:text-primary focus:ring-0 focus:ring-offset-0 px-0 shadow-none gap-2 w-auto">
                 <SelectValue placeholder="Şehir seçin" />
               </SelectTrigger>
               <SelectContent>
                 {TURKISH_CITIES.map(c => (
-                  <SelectItem 
-                    key={c.name} 
-                    value={c.name} 
-                    data-testid={`city-option-${c.name.toLowerCase().replace(/[İıĞğÜüŞşÖöÇç]/g, char => {
-                      const map = { 'İ': 'i', 'ı': 'i', 'Ğ': 'g', 'ğ': 'g', 'Ü': 'u', 'ü': 'u', 'Ş': 's', 'ş': 's', 'Ö': 'o', 'ö': 'o', 'Ç': 'c', 'ç': 'c' };
-                      return map[char] || char;
-                    })}`}
-                  >
-                    {c.name}
-                  </SelectItem>
+                  <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           
-          {/* Theme Toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="rounded-full hover:bg-secondary transition-all duration-300"
-            data-testid="theme-toggle"
-          >
-            {theme === "light" ? (
-              <Moon className="w-5 h-5 transition-transform duration-300" />
-            ) : (
-              <Sun className="w-5 h-5 transition-transform duration-300" />
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSettingsOpen(true)}
+              className="rounded-full"
+              data-testid="settings-button"
+            >
+              <Settings className="w-5 h-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="rounded-full"
+              data-testid="theme-toggle"
+            >
+              {theme === "light" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+            </Button>
+          </div>
         </header>
         
-        {/* Hero - Countdown */}
-        <section className="flex flex-col items-center justify-center min-h-[40vh] md:min-h-[45vh] mb-12 animate-fade-in-up animation-delay-100" data-testid="countdown-section">
+        {/* Date and Day Info */}
+        <div className="text-center mb-6 animate-fade-in-up">
+          <p className="text-muted-foreground text-sm">
+            {new Date().toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })} • {getDayOfWeekTurkish()}
+          </p>
+        </div>
+        
+        {/* Countdown Section */}
+        <section className="flex flex-col items-center justify-center min-h-[35vh] mb-8 animate-fade-in-up animation-delay-100" data-testid="countdown-section">
           {loading ? (
             <div className="flex flex-col items-center gap-4">
               <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
               <p className="text-muted-foreground">Yükleniyor...</p>
             </div>
-          ) : iftarPassed ? (
-            <div className="text-center">
-              <p className="text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground mb-4">
-                İftar Vakti
-              </p>
-              <h1 className="text-3xl md:text-5xl font-light text-primary mb-4">
-                İftar vakti geldi!
-              </h1>
-              <p className="text-xl md:text-2xl text-muted-foreground">
-                Afiyet olsun
-              </p>
-            </div>
           ) : (
             <>
               <p className="text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground mb-4">
-                {periodInfo.isEid ? "Akşam Yemeğine" : "İftar'a"} Kalan Süre
+                {countdownLabel}
               </p>
               
-              {/* Countdown Timer */}
-              <div className="flex items-center gap-2 md:gap-4 mb-6" data-testid="countdown-timer">
+              <div className="flex items-center gap-2 md:gap-4 mb-6">
                 <div className="flex flex-col items-center">
-                  <span className="countdown-digit text-6xl md:text-9xl font-extralight tracking-tighter tabular-nums text-foreground">
-                    {countdown.hours}
-                  </span>
+                  <span className="text-6xl md:text-8xl font-extralight tracking-tighter tabular-nums">{countdown.hours}</span>
                   <span className="text-xs uppercase tracking-wider text-muted-foreground mt-2">Saat</span>
                 </div>
                 <span className="text-4xl md:text-6xl font-extralight text-primary/50 -mt-6">:</span>
                 <div className="flex flex-col items-center">
-                  <span className="countdown-digit text-6xl md:text-9xl font-extralight tracking-tighter tabular-nums text-foreground">
-                    {countdown.minutes}
-                  </span>
+                  <span className="text-6xl md:text-8xl font-extralight tracking-tighter tabular-nums">{countdown.minutes}</span>
                   <span className="text-xs uppercase tracking-wider text-muted-foreground mt-2">Dakika</span>
                 </div>
                 <span className="text-4xl md:text-6xl font-extralight text-primary/50 -mt-6">:</span>
                 <div className="flex flex-col items-center">
-                  <span className="countdown-digit text-6xl md:text-9xl font-extralight tracking-tighter tabular-nums text-foreground">
-                    {countdown.seconds}
-                  </span>
+                  <span className="text-6xl md:text-8xl font-extralight tracking-tighter tabular-nums">{countdown.seconds}</span>
                   <span className="text-xs uppercase tracking-wider text-muted-foreground mt-2">Saniye</span>
                 </div>
               </div>
               
-              {/* Iftar Time */}
-              {prayerTimes && (
+              {nextPrayer && prayerTimes && (
                 <div className="text-center">
                   <p className="text-muted-foreground text-sm mb-1">
-                    {periodInfo.isEid ? "Akşam Vakti" : "Bugünkü İftar Vakti"}
+                    {isRamadan && nextPrayer === "Aksam" ? "İftar Vakti" : `${PRAYER_NAMES[nextPrayer]} Vakti`}
                   </p>
-                  <p className="text-3xl md:text-4xl font-light text-primary" data-testid="iftar-time">
-                    {prayerTimes.Aksam}
-                  </p>
+                  <p className="text-3xl md:text-4xl font-light text-primary">{prayerTimes[nextPrayer]}</p>
                 </div>
               )}
             </>
           )}
         </section>
         
-        {/* Daily Menu Card */}
-        {currentMenu && (
-          <section className={`mb-8 animate-fade-in-up animation-delay-150`} data-testid="menu-section">
-            <div className={`bg-card border border-border rounded-2xl overflow-hidden ${menuTypeInfo.cardClass}`}>
-              {/* Menu Header */}
-              <div className={`flex items-center justify-between px-5 py-4 border-b border-border ${
-                currentMenu.type === "kadir_gecesi_special" 
-                  ? "bg-gradient-to-r from-purple-900/30 to-indigo-900/30" 
-                  : currentMenu.type === "eid_special"
-                    ? "bg-gradient-to-r from-amber-900/30 to-orange-900/30"
-                    : "bg-primary/5"
-              }`}>
-                <div className="flex items-center gap-3">
-                  {menuTypeInfo.icon ? (
-                    <menuTypeInfo.icon className={`w-5 h-5 ${menuTypeInfo.iconClass}`} />
-                  ) : (
-                    <UtensilsCrossed className="w-5 h-5 text-primary" />
-                  )}
-                  <div>
-                    <h2 className="text-lg font-medium text-foreground">
-                      {periodInfo.isEid ? "Bayram Menüsü" : "Günün İftar Menüsü"}
-                    </h2>
-                    {menuTypeInfo.label && (
-                      <p className={`text-xs font-medium ${menuTypeInfo.iconClass}`}>
-                        {menuTypeInfo.label}
-                      </p>
-                    )}
-                  </div>
+        {/* Friday Hadith Section */}
+        {todayIsFriday && fridayHadith && (
+          <section className="mb-8 animate-fade-in-up animation-delay-150" data-testid="friday-section">
+            <div className="bg-gradient-to-br from-emerald-900/30 to-teal-900/30 border border-emerald-500/30 rounded-2xl p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                  <Star className="w-5 h-5 text-emerald-400" />
                 </div>
-                <div className="flex items-center gap-2">
-                  {currentMenu.type === "kadir_gecesi_special" && (
-                    <span className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1">
-                      <Star className="w-3 h-3" />
-                      Kadir Gecesi
-                    </span>
-                  )}
-                  {currentMenu.type === "eid_special" && (
-                    <span className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" />
-                      Bayram
-                    </span>
-                  )}
-                  <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${menuTypeInfo.badgeClass} text-primary-foreground`}>
-                    {periodInfo.isRamadan 
-                      ? `${periodInfo.dayOfRamadan}. Gün` 
-                      : periodInfo.isEid 
-                        ? `${periodInfo.dayOfEid}. Gün`
-                        : "Örnek"
-                    }
-                  </span>
+                <div>
+                  <h3 className="font-medium text-emerald-400">Cuma Günü</h3>
+                  <p className="text-xs text-muted-foreground">Haftanın En Hayırlı Günü</p>
                 </div>
               </div>
               
-              {/* Menu Content */}
-              <div className="p-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                  {/* Soup */}
-                  <div className="flex items-start gap-3 p-4 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
-                    <div className="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center flex-shrink-0">
-                      <Soup className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Çorba</span>
-                      <p className="text-sm font-medium text-foreground leading-tight" data-testid="menu-soup">
-                        {currentMenu.soup}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Main Dish */}
-                  <div className="flex items-start gap-3 p-4 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
-                    <div className="w-10 h-10 rounded-lg bg-red-500 flex items-center justify-center flex-shrink-0">
-                      <Beef className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Ana Yemek</span>
-                      <p className="text-sm font-medium text-foreground leading-tight" data-testid="menu-main">
-                        {currentMenu.main}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Side Dish */}
-                  <div className="flex items-start gap-3 p-4 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
-                    <div className="w-10 h-10 rounded-lg bg-violet-500 flex items-center justify-center flex-shrink-0">
-                      <Wheat className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Pilav / Yan</span>
-                      <p className="text-sm font-medium text-foreground leading-tight" data-testid="menu-side">
-                        {currentMenu.side}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Salad/Meze */}
-                  <div className="flex items-start gap-3 p-4 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
-                    <div className="w-10 h-10 rounded-lg bg-green-500 flex items-center justify-center flex-shrink-0">
-                      <Salad className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Salata / Meze</span>
-                      <p className="text-sm font-medium text-foreground leading-tight" data-testid="menu-salad">
-                        {currentMenu.salad_or_meze}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Dessert */}
-                  <div className="flex items-start gap-3 p-4 bg-secondary/50 rounded-xl hover:bg-secondary/80 transition-colors">
-                    <div className="w-10 h-10 rounded-lg bg-orange-500 flex items-center justify-center flex-shrink-0">
-                      <CakeSlice className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tatlı</span>
-                      <p className="text-sm font-medium text-foreground leading-tight" data-testid="menu-dessert">
-                        {currentMenu.dessert}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+              <div className="bg-background/30 rounded-xl p-4 mb-4">
+                <BookOpen className="w-5 h-5 text-emerald-400 mb-2" />
+                <p className="text-sm leading-relaxed text-foreground/90 italic">
+                  "{fridayHadith.text}"
+                </p>
               </div>
               
-              {/* Sample note for non-Ramadan/Eid */}
-              {!periodInfo.isRamadan && !periodInfo.isEid && (
-                <div className="px-4 py-2 bg-primary/5 border-t border-border text-center">
-                  <span className="text-xs text-muted-foreground">Örnek Menü (Ramazan / Bayram Dışı)</span>
-                </div>
-              )}
+              <div className="text-xs text-muted-foreground">
+                <p className="font-medium">{fridayHadith.reference}</p>
+                <p>{fridayHadith.source}</p>
+              </div>
             </div>
           </section>
         )}
         
         {/* Prayer Times Grid */}
         {prayerTimes && (
-          <section className="mb-12 animate-fade-in-up animation-delay-200" data-testid="prayer-times-grid">
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-              {prayerOrder.map((prayer, index) => {
+          <section className="mb-8 animate-fade-in-up animation-delay-200" data-testid="prayer-times-grid">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+              {PRAYER_ORDER.map((prayer, index) => {
                 const Icon = PRAYER_ICONS[prayer];
-                const isIftar = prayer === "Aksam";
+                const isNext = prayer === nextPrayer;
+                const isIftar = isRamadan && prayer === "Aksam";
                 
                 return (
                   <div
                     key={prayer}
-                    className={`prayer-card flex flex-col items-center justify-center p-6 rounded-2xl bg-card border transition-all duration-300 hover:border-primary/50 hover:shadow-lg ${
-                      isIftar 
-                        ? "ring-2 ring-primary bg-primary/5 border-primary shadow-lg pulse-glow md:col-span-1" 
-                        : "border-border/50"
+                    className={`prayer-card flex flex-col items-center justify-center p-5 rounded-2xl bg-card border transition-all duration-300 ${
+                      isNext || isIftar
+                        ? "ring-2 ring-primary bg-primary/5 border-primary shadow-lg"
+                        : "border-border/50 hover:border-primary/30"
                     }`}
-                    data-testid={`prayer-card-${prayer.toLowerCase()}`}
                     style={{ animationDelay: `${index * 50}ms` }}
+                    data-testid={`prayer-card-${prayer.toLowerCase()}`}
                   >
-                    <Icon className={`w-6 h-6 mb-3 ${isIftar ? "text-primary" : "text-muted-foreground"}`} strokeWidth={1.5} />
-                    <span className="text-xs uppercase tracking-[0.15em] font-bold text-muted-foreground mb-2">
+                    <Icon className={`w-6 h-6 mb-3 ${isNext || isIftar ? "text-primary" : "text-muted-foreground"}`} strokeWidth={1.5} />
+                    <span className="text-xs uppercase tracking-[0.1em] font-bold text-muted-foreground mb-2">
                       {PRAYER_NAMES[prayer]}
                     </span>
-                    <span className={`text-2xl font-light tabular-nums ${isIftar ? "text-primary" : "text-foreground"}`}>
+                    <span className={`text-xl font-light tabular-nums ${isNext || isIftar ? "text-primary" : "text-foreground"}`}>
                       {prayerTimes[prayer]}
                     </span>
                   </div>
@@ -1010,33 +894,23 @@ function App() {
           </section>
         )}
         
-        {/* Ramadan Schedule Button */}
-        <section className="flex justify-center mb-12 animate-fade-in-up animation-delay-300">
+        {/* Schedule Button */}
+        <section className="flex justify-center mb-8 animate-fade-in-up animation-delay-300">
           <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
             <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                className="gap-2 rounded-full px-6 py-5 text-base hover:bg-primary hover:text-primary-foreground transition-all btn-press"
-                onClick={handleScheduleOpen}
-                data-testid="schedule-button"
-              >
+              <Button variant="outline" className="gap-2 rounded-full px-6 py-5 text-base hover:bg-primary hover:text-primary-foreground transition-all">
                 <Calendar className="w-5 h-5" />
-                {periodInfo.isRamadan ? "Ramazan İmsakiyesi" : periodInfo.isEid ? "Bayram Programı" : "Aylık Takvim"}
+                {isRamadan ? "Ramazan İmsakiyesi" : "Aylık Takvim"}
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[80vh] p-0 overflow-hidden" data-testid="schedule-modal">
+            <DialogContent className="max-w-3xl max-h-[80vh] p-0 overflow-hidden">
               <DialogHeader className="p-6 pb-0">
                 <DialogTitle className="text-2xl font-light flex items-center gap-2">
                   <Calendar className="w-6 h-6 text-primary" />
-                  {city?.name} — {periodInfo.isRamadan ? "Ramazan İmsakiyesi 2026" : periodInfo.isEid ? "Bayram Programı" : "Aylık Namaz Vakitleri"}
+                  {city?.name} — {isRamadan ? "Ramazan İmsakiyesi" : "Aylık Namaz Vakitleri"}
                 </DialogTitle>
                 <DialogDescription className="text-sm text-muted-foreground mt-1">
-                  {periodInfo.isRamadan 
-                    ? "19 Şubat - 19 Mart 2026 (29 gün)" 
-                    : periodInfo.isEid
-                      ? "20 Mart - 22 Mart 2026 (3 gün)"
-                      : `${city?.name} için aylık namaz vakitleri`
-                  }
+                  {city?.name} için namaz vakitleri
                 </DialogDescription>
               </DialogHeader>
               <div className="h-[60vh] overflow-y-auto overflow-x-auto px-4 md:px-6 pb-6">
@@ -1044,50 +918,23 @@ function App() {
                   <table className="w-full text-sm">
                     <thead className="sticky top-0 bg-background z-10">
                       <tr className="border-b">
-                        {periodInfo.isRamadan ? (
-                          <th className="text-center py-3 px-2 font-medium text-primary whitespace-nowrap">Gün</th>
-                        ) : null}
-                        <th className="text-left py-3 px-2 font-medium text-muted-foreground whitespace-nowrap">Tarih</th>
-                        <th className="text-center py-3 px-2 font-medium text-muted-foreground whitespace-nowrap">İmsak</th>
-                        <th className="text-center py-3 px-2 font-medium text-muted-foreground whitespace-nowrap">Güneş</th>
-                        <th className="text-center py-3 px-2 font-medium text-muted-foreground whitespace-nowrap">Öğle</th>
-                        <th className="text-center py-3 px-2 font-medium text-muted-foreground whitespace-nowrap">İkindi</th>
-                        <th className="text-center py-3 px-2 font-medium text-primary font-bold whitespace-nowrap">Akşam</th>
-                        <th className="text-center py-3 px-2 font-medium text-muted-foreground whitespace-nowrap">Yatsı</th>
+                        <th className="text-left py-3 px-2 font-medium text-muted-foreground">Tarih</th>
+                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">İmsak</th>
+                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">Güneş</th>
+                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">Öğle</th>
+                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">İkindi</th>
+                        <th className="text-center py-3 px-2 font-medium text-primary font-bold">Akşam</th>
+                        <th className="text-center py-3 px-2 font-medium text-muted-foreground">Yatsı</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {(periodInfo.isRamadan ? fullRamadanData : monthlyData).map((day, index) => {
-                        const today = new Date();
-                        const todayStr = `${today.getDate().toString().padStart(2, "0")}.${(today.getMonth() + 1).toString().padStart(2, "0")}.${today.getFullYear()}`;
+                      {monthlyData.map((day, index) => {
+                        const todayStr = getTodayString();
                         const isToday = day.MiladiTarihKisa === todayStr;
-                        const ramadanDay = day.ramadanDay || index + 1;
-                        const isPlaceholder = day.isPlaceholder;
-                        const isKadirGecesi = ramadanDay === 27;
                         
                         return (
-                          <tr 
-                            key={index} 
-                            className={`border-b transition-colors ${
-                              isKadirGecesi 
-                                ? "bg-purple-900/20" 
-                                : isToday 
-                                  ? "bg-primary/10" 
-                                  : "hover:bg-muted/50"
-                            } ${isPlaceholder ? "opacity-50" : ""}`}
-                            data-testid={`schedule-row-${index}`}
-                          >
-                            {periodInfo.isRamadan ? (
-                              <td className={`text-center py-3 px-2 font-bold ${isKadirGecesi ? "text-purple-400" : "text-primary"}`}>
-                                {ramadanDay}
-                                {isKadirGecesi && (
-                                  <Star className="w-3 h-3 inline ml-1 text-purple-400" />
-                                )}
-                              </td>
-                            ) : null}
-                            <td className="py-3 px-2 font-medium whitespace-nowrap">
-                              {day.MiladiTarihKisa}
-                            </td>
+                          <tr key={index} className={`border-b transition-colors ${isToday ? "bg-primary/10" : "hover:bg-muted/50"}`}>
+                            <td className="py-3 px-2 font-medium whitespace-nowrap">{day.MiladiTarihKisa}</td>
                             <td className="text-center py-3 px-2 tabular-nums">{day.Imsak}</td>
                             <td className="text-center py-3 px-2 tabular-nums">{day.Gunes}</td>
                             <td className="text-center py-3 px-2 tabular-nums">{day.Ogle}</td>
@@ -1108,9 +955,69 @@ function App() {
         {/* Footer */}
         <footer className="text-center text-sm text-muted-foreground animate-fade-in-up animation-delay-400 space-y-2">
           <p>Namaz vakitleri T.C. Diyanet İşleri Başkanlığı verilerine dayanmaktadır.</p>
-          <p className="text-xs opacity-70">This site was developed by Seyrani Kenger.</p>
+          <p className="text-xs opacity-70">Developed by Seyrani Kenger</p>
         </footer>
       </div>
+      
+      {/* Settings Dialog */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5 text-primary" />
+              Ayarlar
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            {/* Notifications Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {notificationsEnabled ? (
+                  <Bell className="w-5 h-5 text-primary" />
+                ) : (
+                  <BellOff className="w-5 h-5 text-muted-foreground" />
+                )}
+                <div>
+                  <p className="font-medium">Bildirimler</p>
+                  <p className="text-xs text-muted-foreground">Namaz vakitlerinde bildirim al</p>
+                </div>
+              </div>
+              <Switch
+                checked={notificationsEnabled}
+                onCheckedChange={handleNotificationToggle}
+              />
+            </div>
+            
+            {/* Silent Mode Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {silentMode ? (
+                  <VolumeX className="w-5 h-5 text-muted-foreground" />
+                ) : (
+                  <Volume2 className="w-5 h-5 text-primary" />
+                )}
+                <div>
+                  <p className="font-medium">Sessiz Mod</p>
+                  <p className="text-xs text-muted-foreground">Bildirimler sessiz olsun</p>
+                </div>
+              </div>
+              <Switch
+                checked={silentMode}
+                onCheckedChange={handleSilentModeToggle}
+                disabled={!notificationsEnabled}
+              />
+            </div>
+            
+            {/* Info */}
+            <div className="pt-4 border-t border-border">
+              <p className="text-xs text-muted-foreground text-center">
+                Hesaplama Metodu: Diyanet İşleri Başkanlığı (Türkiye)
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
