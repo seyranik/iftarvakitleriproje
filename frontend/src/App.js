@@ -873,6 +873,49 @@ function App() {
     <div className="min-h-screen bg-background transition-colors duration-500" data-testid="prayer-app">
       <Toaster position="top-center" richColors />
       
+      {/* Location Permission Prompt */}
+      {showLocationPrompt && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-2xl p-6 max-w-md w-full shadow-xl animate-fade-in-up">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                <Navigation className="w-6 h-6 text-primary" />
+              </div>
+              <h2 className="text-xl font-medium">Konum İzni</h2>
+            </div>
+            <p className="text-muted-foreground mb-6">
+              Bulunduğunuz şehrin namaz vakitlerini otomatik olarak göstermek için konum izni gereklidir. İzin vermezseniz varsayılan olarak Erzincan seçilecektir.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={handleLocationDecline}
+                disabled={locationLoading}
+                data-testid="location-decline-btn"
+              >
+                Hayır, Erzincan
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleLocationAccept}
+                disabled={locationLoading}
+                data-testid="location-accept-btn"
+              >
+                {locationLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Konum alınıyor...
+                  </>
+                ) : (
+                  "Evet, Konumumu Bul"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Notification Permission Prompt */}
       {showNotificationPrompt && (
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
