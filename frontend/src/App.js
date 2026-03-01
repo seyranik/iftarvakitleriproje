@@ -417,6 +417,8 @@ function App() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [silentMode, setSilentMode] = useState(false);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
   
   // Friday state
   const [todayIsFriday, setTodayIsFriday] = useState(false);
